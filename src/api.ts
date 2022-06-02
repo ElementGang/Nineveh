@@ -51,12 +51,15 @@ export async function HandleInteraction(
         return;
     }
     
-    const interaction = JSON.parse(
-        typeof body === "string" ? body : new TextDecoder().decode(body)
-    ) as APIInteraction;
+    const interaction = JSON.parse(decode(body)) as APIInteraction;
     console.log(JSON.stringify(interaction));
 
     switch (interaction.type) {
+        case InteractionType.Ping:
+            respond(200, {
+                type: InteractionResponseType.Pong
+            } as APIInteractionResponse)
+            break;
         case InteractionType.ApplicationCommand:
             switch (interaction.data.name) {
                 case "init":
