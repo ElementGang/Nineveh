@@ -1,0 +1,22 @@
+{
+  "name": "sasha",
+  "version": "0.1.0",
+  "main": "./src/index.ts",
+  "license": "ISC",
+  "private": true,
+  "scripts": {
+    "start": "yarn node -r @swc-node/register ./src/index.ts"
+  },
+  "dependencies": {
+    "@swc-node/register": "latest",
+    "@types/express": "latest",
+    "discord-api-types": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "express-async-handler": "latest",
+    "node-fetch": "latest",
+    "tweetnacl": "latest",
+    "typescript": "latest"
+  },
+  "packageManager": "yarn@3.2.1"
+}

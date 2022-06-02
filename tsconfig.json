@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "strict": true,
+        "inlineSourceMap": true,
+        "outDir": "dist/",
+        "target": "ES2021",
+        "lib": ["ES2021", "DOM"],
+    },
+    "include": ["src/**/*"]
+}
