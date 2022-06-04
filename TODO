@@ -1,0 +1,47 @@
+Commands:
+  ☐ Init command
+    ☐ boostraps, registers other commands
+    ☐ create master list (same command as above)
+  ☐ admin migrate group command
+    ☐ can use existing channel as private channel
+  ☐ admin change groups channel
+  ☐ reassign group leader - admin or groups leader
+
+Summary channel:
+  ☐ Create group button
+    ☐ ephemeral message commands - name, description, activities, membership policy, channel visibility
+    ☐ group created actions:
+      ☐ create private group channel
+      ☐ create role for group membership
+      ☐ post the group in groups channel
+      ☐ assign membership + group leader role
+  ☐ Server settings
+    ☐ admin mentionable
+    ☐ create group role
+    ☐ group leader role
+    ☐ delete group policy
+  ☐ character menu
+    ☐ shows ephemeral for all your characters
+    ☐ edit character button - pick existing or create new
+      ☐ name, class, ilvl
+    ☐ delete character
+
+Groups channel:
+  ☐ ui for individual groups
+    ☐ shows:
+      ☐ activities
+      ☐ description (can include scheduling info)
+      ☐ members
+      ☐ channel
+    ☐ apply button - shows ephemeral to pick which character to join on
+    ☐ edit button - shows ephemeral to edit the activities, name, description, policy or delete
+
+Private group channels:
+  Nothing to do!
+  
+
+Stretch goals:
+  ☐ game templates
+  ☐ schedule management (e.g. ping people automatically)
+  ☐ ephemeral groups
+  ☐ use twitch armory thing for character import

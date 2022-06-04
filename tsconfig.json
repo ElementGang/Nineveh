@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
+        "module": "CommonJS",
         "noImplicitAny": true,
         "strict": true,
         "inlineSourceMap": true,
