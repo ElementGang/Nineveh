@@ -1,8 +1,20 @@
 {
     "compilerOptions": {
-        "strict": true,
-        "target": "ES2021",
-        "lib": ["ES2021", "DOM"]
+        "strict": true
     },
-    "include": ["src/**/*"]
+    "include": ["src/**/*"],
+    "fmt": {
+        "options": {
+            "indentWidth": 4
+        }
+    },
+    "lint": {
+        "rules": {
+            "include": [
+                "eqeqeq",
+                "default-param-last",
+                "no-undef"
+            ]
+        }
+    }
 }

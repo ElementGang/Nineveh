@@ -2,6 +2,7 @@
     "imports": {
         "discord-api-types": "https://deno.land/x/discord_api_types@0.33.3/v10.ts",
         "dotenv": "https://esm.sh/dotenv@16.0.1",
-        "nacl": "https://esm.sh/tweetnacl@1.0.3"
+        "nacl": "https://esm.sh/tweetnacl@1.0.3",
+        "std/": "https://deno.land/std@0.142.0/"
     }
 }

@@ -8,6 +8,7 @@ import {
 } from "discord-api-types";
 import nacl from "nacl";
 import { Commands } from "./commands.ts";
+import { Buffer } from "std/node/buffer.ts";
 
 const encoder = new TextEncoder();
 export function encode(x: string | Uint8Array): Uint8Array {
