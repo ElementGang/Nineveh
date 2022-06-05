@@ -1,17 +1,11 @@
-import { config } from "dotenv"
-import { CmdToJson, Commands } from "./commands";
-import { CreateGlobalApplicationCommand } from "./discord";
-import * as go from "./fetch-polyfill";
+import * as dotenv from "dotenv";
+import { Commands } from "./commands.ts";
+import { CreateGlobalApplicationCommand } from "./discord.ts";
 
-(async () => {
-    await go();
-    config()
-    
+dotenv.config();
 
-    const globalCommands = Commands.filter(x => x.scope === "global");
+const globalCommands = Commands.filter((x) => x.scope === "global");
 
-    for(const cmd of globalCommands)
-    {    
-        CreateGlobalApplicationCommand(cmd)
-    }
-})();
+for (const cmd of globalCommands) {
+    CreateGlobalApplicationCommand(cmd);
+}

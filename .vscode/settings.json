@@ -1,6 +1,11 @@
 {
+    "deno.config": "./deno.jsonc",
     "deno.enable": true,
     "deno.lint": true,
     "deno.unstable": true,
-    "deno.importMap": "./import_map.json"
+    "deno.importMap": "./import_map.json",
+    "editor.codeActionsOnSave": {
+        "source.fixAll": true
+    },
+    "editor.formatOnSave": true
 }
