@@ -1,26 +1,31 @@
-import * as asyncHandler from "express-async-handler";
-import * as express from "express";
-import { config } from "dotenv";
+import { HandleInteraction } from "./api.ts";
+import * as dotenv from "dotenv";
 
-import { HandleInteraction } from "./api";
+dotenv.config();
+const port = Number(Deno.env.get('PORT') ?? 3000);
+const server = Deno.listen({ port });
 
-config();
-const app = express();
-const port = Number(process.env.PORT ?? 3000);
+for await (const conn of server) {
+    serveHttp(conn);
+}
 
-app.post(
-    "/interactions",
-    express.raw({ type: () => true }),
-    asyncHandler(async (req, res) => {
-        await HandleInteraction(
-            req.body as Buffer,
-            (x) => req.header(x),
-            (status, body) => {
-                res.status(status);
-                res.send(body);
-            }
-        );
-    })
-);
-
-app.listen(port);
+async function serveHttp(conn: Deno.Conn) {
+    const httpConn = Deno.serveHttp(conn);
+    for await (const requestEvent of httpConn) {
+        if (requestEvent.request.url === "/interactions" && requestEvent.request.method === "POST") {
+            HandleInteraction(
+                new TextDecoder().decode(await requestEvent.request.arrayBuffer()),
+                (name) => requestEvent.request.headers.get(name),
+                (status, body) => {
+                    requestEvent.respondWith(new Response(JSON.stringify(body), {
+                        status
+                    }));
+                }
+            )
+        } else {
+            requestEvent.respondWith(new Response("Not found", {
+                status: 404
+            }));
+        }
+    }
+}

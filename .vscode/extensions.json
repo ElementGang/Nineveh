@@ -1,0 +1,6 @@
+{
+    "recommendations": [
+        "umbo.vscode-velociraptor",
+        "denoland.vscode-deno"
+    ]
+}

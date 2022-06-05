@@ -1,0 +1,12 @@
+allow:
+  - net
+  - read
+  - env
+
+importMap: "./import_map.json"
+
+scripts:
+  start:
+    cmd: src/index.ts
+  commands:
+    cmd: src/commands.ts
