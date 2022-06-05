@@ -1,5 +1,6 @@
 import * as nacl from "tweetnacl";
-import { APIInteraction, APIInteractionResponse, ComponentType, InteractionResponseType, InteractionType } from "discord-api-types/v10";
+import { APIInteraction, APIInteractionResponse, ButtonStyle, ComponentType, InteractionResponseType, InteractionType } from "discord-api-types/v10";
+import { Commands } from "./commands";
 
 
 const encoder = new TextEncoder();
@@ -61,27 +62,15 @@ export async function HandleInteraction(
             } as APIInteractionResponse)
             break;
         case InteractionType.ApplicationCommand:
-            switch (interaction.data.name) {
-                case "init":
-                    respond(200, {
-                        type: InteractionResponseType.ChannelMessageWithSource,
-                        data: {
-                            content: "Hello, world!",
-                            components: [
-                                {
-                                    type: ComponentType.ActionRow,
-                                    components: [
-                                        {
-                                            type: ComponentType.Button,
-                                            label: "Button!",
-                                            custom_id: "btn_add_group"
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    } as APIInteractionResponse)
-                    break;
+            const result = Commands.find(x => interaction.data.name === x.name);
+            if (result)
+            {
+                respond(200, result.interaction(interaction))
+            }
+            else
+            {
+                respond(404, "")
+                console.error(`Command not found: ${interaction.data.name}`)
             }
             break;
     }

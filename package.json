@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "start": "yarn node -r @swc-node/register ./src/index.ts",
-    "commands": "yarn node -r @swc-node/register ./src/commands.ts"
+    "setup": "yarn node -r @swc-node/register ./src/setup.ts"
   },
   "dependencies": {
     "@swc-node/register": "latest",

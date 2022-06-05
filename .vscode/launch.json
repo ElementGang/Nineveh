@@ -15,6 +15,18 @@
 
             "cwd": "${workspaceRoot}",
             "skipFiles": ["<node_internals>/**", "node_modules/**"]
+        },
+        {
+            "name": "Run Global Setup",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "yarn",
+            "runtimeArgs": ["node", "-r", "@swc-node/register"],
+
+            "args": ["src/setup.ts"],
+
+            "cwd": "${workspaceRoot}",
+            "skipFiles": ["<node_internals>/**", "node_modules/**"]
         }
     ]
 }

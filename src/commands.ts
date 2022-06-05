@@ -1,18 +1,50 @@
-import { ApplicationCommandType, RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10"
-import { config } from "dotenv"
-import * as go from "./fetch-polyfill";
+import { APIApplicationCommandInteraction, APIInteractionResponse, ApplicationCommandType, ButtonStyle, ComponentType, InteractionResponseType, RESTPostAPIApplicationCommandsJSONBody } from "discord-api-types/v10";
+import { CreateGuildApplicationCommand } from "./discord";
 
-(async () => {
-    await go();
-    config()
-    const url = `https://discord.com/api/v10/applications/${process.env.APP_ID}/commands`
-    const json : RESTPostAPIApplicationCommandsJSONBody = {
+export interface Command {
+    name: string,
+    description: string,
+    permissions: "admin" | "user",
+    scope: "global" | "server",
+    interaction: (input: APIApplicationCommandInteraction) => APIInteractionResponse
+}
+
+export const Commands: Command[] = [
+    {
         name: "create-guild",
-        type: ApplicationCommandType.ChatInput,
         description: "Creates a guild within this server to manage a set of groups. Creates a group summary channel.",
-        dm_permission: false,
-        default_member_permissions: "0"
-    }
+        permissions: "admin",
+        scope: "global",
+        interaction(input) {
 
-    void fetch(url, { method: "POST", body: JSON.stringify(json), headers: {"Authorization": `Bot ${process.env.BOT_TOKEN}`} });
-})();
+            const serverCommands = Commands.filter(x => x.scope === "server")
+            for(const cmd of serverCommands)
+            {
+                CreateGuildApplicationCommand(cmd, input.guild_id!)
+            }
+
+            return {
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data: {
+                    content: "Hello, world!"
+                }
+            }
+        }
+    },
+    {
+        name: "migrate-group",
+        description: "Creates a group using an existing channel",
+        permissions: "admin",
+        scope: "server",
+        interaction(input) {
+
+            return {
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data: {
+                    content: "Migrate"
+                }
+            }
+        }
+    },
+
+]

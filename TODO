@@ -1,10 +1,10 @@
 Commands:
-  ☐ Init command
+  ☐ create guild command
     ☐ boostraps, registers other commands
     ☐ create master list (same command as above)
   ☐ admin migrate group command
     ☐ can use existing channel as private channel
-  ☐ admin change groups channel
+  ☐ admin change group channel
   ☐ reassign group leader - admin or groups leader
 
 Summary channel:
@@ -36,11 +36,18 @@ Groups channel:
     ☐ apply button - shows ephemeral to pick which character to join on
     ☐ edit button - shows ephemeral to edit the activities, name, description, policy or delete
 
+Logging channel:
+  ☐ new groups
+  ☐ member joined group
+  ☐ member left group
+
+
 Private group channels:
   Nothing to do!
   
 
 Stretch goals:
+  ☐ global command list syncs fully (gets list, edit/create ones in our list, delete old commands)
   ☐ game templates
   ☐ schedule management (e.g. ping people automatically)
   ☐ ephemeral groups
