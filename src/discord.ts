@@ -1,12 +1,22 @@
 import {
+    APIChannel,
+    APIEmbed,
+    APIMessage,
+    APIRole,
     ApplicationCommandType,
+    RESTPatchAPIChannelMessageJSONBody,
     RESTPostAPIApplicationCommandsJSONBody,
+    RESTPostAPIChannelMessageJSONBody,
+    RESTPostAPIGuildChannelJSONBody,
+    RESTPostAPIGuildRoleJSONBody,
+    RouteBases,
+    Routes,
 } from "discord-api-types";
 import { Command } from "./commands.ts";
+import * as PNG from "pngs";
+import { decode, encode } from "./api.ts";
 
-const baseUrl = "https://discord.com/api/v10";
-
-export function CmdToJson(
+function PostCmdToJson(
     command: Command,
 ): RESTPostAPIApplicationCommandsJSONBody {
     return {
@@ -14,51 +24,178 @@ export function CmdToJson(
         type: ApplicationCommandType.ChatInput,
         description: command.description,
         dm_permission: false,
-        default_member_permissions: command.permissions === "admin"
-            ? "0"
-            : null,
+        options: command.parameters ?? [],
+        default_member_permissions: command.permissions === "admin" ? "0" : null,
     };
+}
+
+async function ApiGet<TResponse>(route: string): Promise<TResponse> {
+    const url = RouteBases.api + route;
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bot ${Deno.env.get("BOT_TOKEN")}`,
+        },
+    });
+    console.log(response.status);
+    const responseBody = await response.json() as TResponse;
+    console.log(JSON.stringify(responseBody));
+
+    if (!response.ok) {
+        throw Error(`Get failed: ${response.status}`);
+    }
+
+    return responseBody;
+}
+
+async function ApiInvoke<TRequest, TResponse>(
+    method: "POST" | "PUT" | "PATCH",
+    route: string,
+    request: TRequest,
+): Promise<TResponse> {
+    const url = RouteBases.api + route;
+    const response = await fetch(url, {
+        method: method,
+        body: request ? JSON.stringify(request) : "",
+        headers: {
+            "Authorization": `Bot ${Deno.env.get("BOT_TOKEN")}`,
+            "Content-Type": "application/json",
+        },
+    });
+    console.log(response.status);
+    const responseBody = await response.json() as TResponse;
+    console.log(JSON.stringify(responseBody));
+
+    if (!response.ok) {
+        throw Error(`${method} failed: ${response.status}`);
+    }
+
+    return responseBody;
+}
+
+async function ApiInvokeVoid(
+    method: "POST" | "PUT" | "PATCH",
+    route: string,
+): Promise<void> {
+    const url = RouteBases.api + route;
+    const response = await fetch(url, {
+        method: method,
+        headers: {
+            "Authorization": `Bot ${Deno.env.get("BOT_TOKEN")}`,
+            "Content-Type": "application/json",
+        },
+    });
+    console.log(response.status);
+    if (response.status !== 204) {
+        const responseBody = await response.json();
+        console.log(JSON.stringify(responseBody));
+    }
+
+    if (!response.ok) {
+        throw Error(`${method} failed: ${response.status}`);
+    }
 }
 
 export async function CreateGlobalApplicationCommand(
     cmd: Command,
 ): Promise<void> {
-    CreateGlobalApplicationCommandImpl(CmdToJson(cmd));
+    await ApiInvoke("POST", Routes.applicationCommands(Deno.env.get("APP_ID")!), PostCmdToJson(cmd));
 }
 
-async function CreateGlobalApplicationCommandImpl(
-    json: RESTPostAPIApplicationCommandsJSONBody,
-): Promise<void> {
-    const url = `${baseUrl}/applications/${Deno.env.get("APP_ID")}/commands`;
-
-    const response = await fetch(url, {
-        method: "POST",
-        body: JSON.stringify(json),
-        headers: {
-            "Authorization": `Bot ${Deno.env.get("BOT_TOKEN")}`,
-            "Content-Type": "application/json",
-        },
-    });
-    console.log(response.status);
-    console.log(JSON.stringify(await response.json()));
+export async function CreateGuildApplicationCommand(cmd: Command, guildID: string): Promise<void> {
+    await ApiInvoke("POST", Routes.applicationGuildCommands(Deno.env.get("APP_ID")!, guildID), PostCmdToJson(cmd));
 }
 
-export async function CreateGuildApplicationCommand(
-    json: RESTPostAPIApplicationCommandsJSONBody,
-    guildID: string,
-) {
-    const url = `${baseUrl}/applications/${
-        Deno.env.get("APP_ID")
-    }/guilds/${guildID}/commands`;
+export function GetChannelMessage(channelId: string, messageId: string): Promise<APIMessage> {
+    return ApiGet(Routes.channelMessage(channelId, messageId));
+}
 
-    const response = await fetch(url, {
-        method: "POST",
-        body: JSON.stringify(json),
-        headers: {
-            "Authorization": `Bot ${Deno.env.get("BOT_TOKEN")}`,
-            "Content-Type": "application/json",
-        },
-    });
-    console.log(response.status);
-    console.log(JSON.stringify(await response.json()));
+export function CreateMessage(channelId: string, message: RESTPostAPIChannelMessageJSONBody): Promise<APIMessage> {
+    return ApiInvoke("POST", Routes.channelMessages(channelId), message);
+}
+
+export function EditMessage(
+    channelId: string,
+    messageId: string,
+    message: RESTPatchAPIChannelMessageJSONBody,
+): Promise<APIMessage> {
+    return ApiInvoke("PATCH", Routes.channelMessage(channelId, messageId), message);
+}
+
+export function CreateGuildRole(guildId: string, message: RESTPostAPIGuildRoleJSONBody): Promise<APIRole> {
+    return ApiInvoke("POST", Routes.guildRoles(guildId), message);
+}
+
+export function AddGuildMemberRole(guildId: string, userId: string, roleId: string): Promise<void> {
+    return ApiInvokeVoid("PUT", Routes.guildMemberRole(guildId, userId, roleId));
+}
+
+export function CreateGuildChannel(guildId: string, message: RESTPostAPIGuildChannelJSONBody): Promise<APIChannel> {
+    return ApiInvoke("POST", Routes.guildChannels(guildId), message);
+}
+
+export function GetChannel(channelId: string): Promise<APIChannel> {
+    return ApiGet(Routes.channel(channelId));
+}
+
+export function CreateMessageUrl(serverId: string, channelId: string, messageId: string): string {
+    return `https://discord.com/channels/${serverId}/${channelId}/${messageId}`;
+}
+
+export function GetEmbedFields<T>(embed: APIEmbed): T {
+    const fields = Object.fromEntries(embed.fields!.map((x) => [x.name, x.value]));
+    return fields as unknown as T;
+}
+
+export function Unformat(formatted: string, pattern: RegExp): string {
+    return formatted.match(pattern)![1];
+}
+
+export async function Save<TState>(
+    state: TState,
+    toSend: Partial<APIMessage>,
+): Promise<BodyInit> {
+    const data = await Compression("compress", encode(JSON.stringify(state)));
+    const png = PNG.encode(data, Math.ceil(data.length / 4), 1);
+
+    const formData = new FormData();
+    formData.append("payload_json", JSON.stringify(toSend));
+    formData.append(
+        `files[0]`,
+        new Blob([png], { type: "image/png" }),
+        "SPOILER_game-state.png",
+    );
+    return formData;
+}
+
+export async function Load<TState>(message: APIMessage): Promise<TState> {
+    const response = await fetch(message.attachments[0].url);
+    const data = await response.arrayBuffer();
+    const raw = await Compression(
+        "decompress",
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        PNG.decode(new Uint8Array(data)).image,
+    );
+    return JSON.parse(decode(raw)) as TState;
+}
+
+async function Compression(
+    dir: "compress" | "decompress",
+    input: Uint8Array,
+): Promise<Uint8Array> {
+    const cs = dir === "compress" ? new CompressionStream("deflate") : new DecompressionStream("deflate");
+    const writer = cs.writable.getWriter();
+    await writer.write(input);
+    await writer.close();
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of cs.readable) {
+        chunks.push(chunk as Uint8Array);
+    }
+    const result = new Uint8Array(chunks.reduce((a, b) => a + b.length, 0));
+    let offset = 0;
+    for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+    }
+    return result;
 }

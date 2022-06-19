@@ -13,7 +13,7 @@ async function serveHttp(conn: Deno.Conn) {
     const httpConn = Deno.serveHttp(conn);
     for await (const requestEvent of httpConn) {
         if (
-            requestEvent.request.url === "/interactions" &&
+            requestEvent.request.url.endsWith("/interactions") &&
             requestEvent.request.method === "POST"
         ) {
             HandleInteraction(
@@ -21,10 +21,13 @@ async function serveHttp(conn: Deno.Conn) {
                     await requestEvent.request.arrayBuffer(),
                 ),
                 (name) => requestEvent.request.headers.get(name),
-                (status, body) => {
-                    requestEvent.respondWith(
+                async (status, body) => {
+                    await requestEvent.respondWith(
                         new Response(JSON.stringify(body), {
                             status,
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
                         }),
                     );
                 },

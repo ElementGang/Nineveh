@@ -1,27 +1,19 @@
 Commands:
-  ☐ create guild command
-    ☐ boostraps, registers other commands
-    ☐ create master list (same command as above)
-  ☐ admin migrate group command
-    ☐ can use existing channel as private channel
-  ☐ admin change group channel
-  ☐ reassign group leader - admin or groups leader
+  ✔ create guild command @done(22-06-05 17:34)
+    ✔ boostraps, registers other commands @done(22-06-05 17:34)
+    ✔ converts current channel to master list @done(22-06-12 19:24)
+  ☐ create group from existing role/channel
 
 Summary channel:
-  ☐ Create group button
-    ☐ ephemeral message commands - name, description, activities, membership policy, channel visibility
-    ☐ group created actions:
-      ☐ create private group channel
-      ☐ create role for group membership
-      ☐ post the group in groups channel
-      ☐ assign membership + group leader role
-  ☐ Server settings
-    ☐ admin mentionable
-    ☐ create group role
-    ☐ group leader role
-    ☐ delete group policy
-  ☐ character menu
-    ☐ shows ephemeral for all your characters
+  ✔ Create group button @done(22-06-12 15:25)
+    ✔ ephemeral message commands - name, description, activities, membership policy, channel visibility @done(22-06-18 14:53)
+    ✔ group created actions: @done(22-06-19 18:15)
+      ✔ create private group channel @done(22-06-18 14:53)
+      ✔ create role for group membership @done(22-06-18 14:53)
+      ✔ post the group in groups channel @done(22-06-12 19:58)
+      ✔ refresh master list, adding an embed for the group @done(22-06-19 18:15)
+  ☐ roster menu
+    ☐ shows ephemeral listing all your characters
     ☐ edit character button - pick existing or create new
       ☐ name, class, ilvl
     ☐ delete character
@@ -29,24 +21,27 @@ Summary channel:
 Groups channel:
   ☐ ui for individual groups
     ☐ shows:
-      ☐ activities
-      ☐ description (can include scheduling info)
+      ✔ description (can include scheduling info) @done(22-06-19 16:02)
       ☐ members
-      ☐ channel
+      ✔ channel @done(22-06-19 16:02)
     ☐ apply button - shows ephemeral to pick which character to join on
     ☐ edit button - shows ephemeral to edit the activities, name, description, policy or delete
+    ☐ kick button - shows ephemeral for group leaders to allow kicking member from group
+    ☐ leave button
 
 Logging channel:
-  ☐ new groups
+  ✔ new groups @done(22-06-19 20:07)
   ☐ member joined group
   ☐ member left group
 
-
 Private group channels:
   Nothing to do!
-  
 
 Stretch goals:
+  ☐ add channel for characters with no group
+  ☐ advertise group in any server
+  ☐ add group activities (tell people to use description for now)
+  ☐ market channel
   ☐ global command list syncs fully (gets list, edit/create ones in our list, delete old commands)
   ☐ game templates
   ☐ schedule management (e.g. ping people automatically)

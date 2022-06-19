@@ -5,7 +5,8 @@
     "include": ["src/**/*"],
     "fmt": {
         "options": {
-            "indentWidth": 4
+            "indentWidth": 4,
+            "lineWidth": 120
         }
     },
     "lint": {
