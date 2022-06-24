@@ -46,5 +46,13 @@ export interface MasterListMainEmbedFields {
 
 export interface MasterListGroupEmbedFields {
     [EmbedFieldNames.GroupLeader]: string;
-    [EmbedFieldNames.GroupMemberCount]: string;
+    [EmbedFieldNames.GroupRole]: string;
+}
+
+export interface GroupMainEmbedFields {
+    [EmbedFieldNames.GroupLeader]: string;
+    [EmbedFieldNames.GroupChannel]: string;
+    [EmbedFieldNames.GroupRole]: string;
+    [EmbedFieldNames.MembershipPolicy]: string;
+    [EmbedFieldNames.ChannelVisibility]: string;
 }

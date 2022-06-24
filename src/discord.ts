@@ -4,6 +4,7 @@ import {
     APIMessage,
     APIRole,
     ApplicationCommandType,
+    FormattingPatterns,
     RESTPatchAPIChannelMessageJSONBody,
     RESTPostAPIApplicationCommandsJSONBody,
     RESTPostAPIChannelMessageJSONBody,
@@ -15,6 +16,7 @@ import {
 import { Command } from "./commands.ts";
 import * as PNG from "pngs";
 import { decode, encode } from "./api.ts";
+import { EmbedFieldNames, MasterListMainEmbedFields } from "./types.ts";
 
 function PostCmdToJson(
     command: Command,
@@ -49,7 +51,7 @@ async function ApiGet<TResponse>(route: string): Promise<TResponse> {
 }
 
 async function ApiInvoke<TRequest, TResponse>(
-    method: "POST" | "PUT" | "PATCH",
+    method: "POST" | "PUT" | "PATCH" | "DELETE",
     route: string,
     request: TRequest,
 ): Promise<TResponse> {
@@ -74,7 +76,7 @@ async function ApiInvoke<TRequest, TResponse>(
 }
 
 async function ApiInvokeVoid(
-    method: "POST" | "PUT" | "PATCH",
+    method: "POST" | "PUT" | "PATCH" | "DELETE",
     route: string,
 ): Promise<void> {
     const url = RouteBases.api + route;
@@ -130,6 +132,10 @@ export function AddGuildMemberRole(guildId: string, userId: string, roleId: stri
     return ApiInvokeVoid("PUT", Routes.guildMemberRole(guildId, userId, roleId));
 }
 
+export function RemoveGuildMemberRole(guildId: string, userId: string, roleId: string): Promise<void> {
+    return ApiInvokeVoid("DELETE", Routes.guildMemberRole(guildId, userId, roleId));
+}
+
 export function CreateGuildChannel(guildId: string, message: RESTPostAPIGuildChannelJSONBody): Promise<APIChannel> {
     return ApiInvoke("POST", Routes.guildChannels(guildId), message);
 }
@@ -149,6 +155,18 @@ export function GetEmbedFields<T>(embed: APIEmbed): T {
 
 export function Unformat(formatted: string, pattern: RegExp): string {
     return formatted.match(pattern)![1];
+}
+
+export async function LogChannelMessage(
+    masterListMainEmbedFields: MasterListMainEmbedFields,
+    message: RESTPostAPIChannelMessageJSONBody,
+): Promise<APIMessage | undefined> {
+    const logChannelIdFormatted = masterListMainEmbedFields[EmbedFieldNames.LogChannel];
+    if (logChannelIdFormatted) {
+        const logChannelId = Unformat(logChannelIdFormatted, FormattingPatterns.Channel);
+        return await CreateMessage(logChannelId, message);
+    }
+    return undefined;
 }
 
 export async function Save<TState>(

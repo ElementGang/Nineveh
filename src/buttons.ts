@@ -1,5 +1,4 @@
 import {
-    APIEmbed,
     APIInteractionResponse,
     APIMessageComponentInteraction,
     ButtonStyle,
@@ -21,10 +20,11 @@ import {
     GetChannel,
     GetChannelMessage,
     GetEmbedFields,
-    Load,
+    LogChannelMessage,
+    RemoveGuildMemberRole,
     Unformat,
 } from "./discord.ts";
-import { EmbedFieldNames, MasterListMainEmbedFields } from "./types.ts";
+import { EmbedFieldNames, GroupMainEmbedFields, MasterListMainEmbedFields } from "./types.ts";
 
 export interface Button {
     interaction: (
@@ -66,7 +66,7 @@ export const AddGroup = {
                 flags: MessageFlags.Ephemeral,
                 embeds: [
                     {
-                        title: "New Group",
+                        title: `${input.member?.user.username}'s Group`,
                         description: "",
                         fields: [
                             { name: EmbedFieldNames.GroupLeader, value: `<@${input.member!.user.id}>`, inline: true },
@@ -169,8 +169,9 @@ export const SubmitNewGroup = {
         const masterListMessage = await GetChannelMessage(input.channel_id, masterListMessageId);
         const masterListMainEmbedFields = GetEmbedFields<MasterListMainEmbedFields>(masterListMessage.embeds[0]);
 
+        // Create role
         const groupRole = await CreateGuildRole(input.guild_id!, {
-            name: `[Group] ${submitEmbed.title}`,
+            name: submitEmbed.title,
         });
 
         await AddGuildMemberRole(input.guild_id!, input.member!.user.id, groupRole.id);
@@ -180,8 +181,9 @@ export const SubmitNewGroup = {
             throw new Error("Master list channel was not guild text");
         }
 
+        // Create group channel
         const groupChannel = await CreateGuildChannel(input.guild_id!, {
-            name: `[Group] ${submitEmbed.title}`,
+            name: submitEmbed.title!,
             parent_id: masterListChannel.parent_id,
             permission_overwrites: [
                 {
@@ -200,11 +202,13 @@ export const SubmitNewGroup = {
         const groupsChannelIdFormatted = masterListMainEmbedFields[EmbedFieldNames.GroupListChannel];
         const groupsChannelId = Unformat(groupsChannelIdFormatted, FormattingPatterns.Channel);
 
+        // Post group ad
         const groupsChannelMessage = await CreateMessage(groupsChannelId, {
             embeds: [
                 {
                     title: submitEmbed.title,
                     description: submitEmbed.description,
+                    url: CreateMessageUrl(input.guild_id!, input.channel_id, masterListMessageId),
                     fields: [
                         submitEmbed.fields![0], // Leader field
                         {
@@ -221,6 +225,37 @@ export const SubmitNewGroup = {
                     ],
                 },
             ],
+            components: [
+                {
+                    type: ComponentType.ActionRow,
+                    components: [
+                        {
+                            type: ComponentType.Button,
+                            style: ButtonStyle.Primary,
+                            custom_id: ApplyToGroup.id(masterListChannel.id, masterListMessageId),
+                            label: "Apply",
+                        },
+                        {
+                            type: ComponentType.Button,
+                            style: ButtonStyle.Danger,
+                            custom_id: LeaveGroup.id(masterListChannel.id, masterListMessageId),
+                            label: "Leave",
+                        },
+                        {
+                            type: ComponentType.Button,
+                            style: ButtonStyle.Secondary,
+                            custom_id: EditGroupMember.id(masterListChannel.id, masterListMessageId),
+                            label: "Change My Details",
+                        },
+                        {
+                            type: ComponentType.Button,
+                            style: ButtonStyle.Secondary,
+                            custom_id: EditGroup.id(masterListChannel.id, masterListMessageId),
+                            label: "Edit Group",
+                        },
+                    ],
+                },
+            ],
         });
 
         masterListMessage.embeds.push({
@@ -230,8 +265,8 @@ export const SubmitNewGroup = {
             fields: [
                 submitEmbed.fields![0], // Leader field
                 {
-                    name: EmbedFieldNames.GroupMemberCount,
-                    value: "1", // New group always has 1 member
+                    name: EmbedFieldNames.GroupRole,
+                    value: `<@&${groupRole.id}>`,
                     inline: true,
                 },
             ],
@@ -239,34 +274,30 @@ export const SubmitNewGroup = {
 
         await EditMessage(masterListMessage.channel_id, masterListMessage.id, masterListMessage);
 
-        const logChannelIdFormatted = masterListMainEmbedFields[EmbedFieldNames.LogChannel];
-        if (logChannelIdFormatted) {
-            const logChannelId = Unformat(logChannelIdFormatted, FormattingPatterns.Channel);
-            await CreateMessage(logChannelId, {
-                content:
-                    `Created group '${submitEmbed.title}' with role <@&${groupRole.id}> and private channel <#${groupChannel.id}>`,
-                components: [
-                    {
-                        type: ComponentType.ActionRow,
-                        components: [
-                            {
-                                type: ComponentType.Button,
-                                style: ButtonStyle.Link,
-                                label: "Go To Listing",
-                                url: CreateMessageUrl(input.guild_id!, groupsChannelId, groupsChannelMessage.id),
-                            },
-                        ],
-                    },
-                ],
-            });
-        }
+        LogChannelMessage(masterListMainEmbedFields, {
+            content: `New group '${submitEmbed.title}' created by <@${
+                input.member!.user.id
+            }> with role <@&${groupRole.id}> and private channel <#${groupChannel.id}>`,
+            components: [
+                {
+                    type: ComponentType.ActionRow,
+                    components: [
+                        {
+                            type: ComponentType.Button,
+                            style: ButtonStyle.Link,
+                            label: "Go To Listing",
+                            url: CreateMessageUrl(input.guild_id!, groupsChannelId, groupsChannelMessage.id),
+                        },
+                    ],
+                },
+            ],
+        });
 
         return {
             type: InteractionResponseType.UpdateMessage,
             data: {
                 embeds: [],
-                content:
-                    `Created group '${submitEmbed.title}' with role <@&${groupRole.id}> and private channel <#${groupChannel.id}>`,
+                content: `Success!`,
                 components: [
                     {
                         type: ComponentType.ActionRow,
@@ -285,4 +316,313 @@ export const SubmitNewGroup = {
     },
 };
 
-export const Buttons: Record<string, Button> = { AddGroup, SubmitNewGroup };
+export const ApplyToGroup = {
+    id: (masterListChannelId: string, masterListMessageId: string) => {
+        return `ApplyToGroup_${masterListChannelId}_${masterListMessageId}`;
+    },
+    // deno-lint-ignore require-await
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const [_, masterListChannelId, masterListMessageId] = input.data.custom_id.split("_");
+
+        const groupMainEmbed = input.message.embeds[0];
+        const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
+
+        const groupRoleFormatted = groupMainEmbedFields[EmbedFieldNames.GroupRole];
+        const groupRole = Unformat(groupRoleFormatted, FormattingPatterns.Role);
+
+        if (input.member?.roles.find((role) => role === groupRole)) {
+            return {
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data: {
+                    content: `You are already in this group`,
+                    flags: MessageFlags.Ephemeral,
+                },
+            };
+        }
+
+        return {
+            type: InteractionResponseType.ChannelMessageWithSource,
+            data: {
+                content: "Application details",
+                flags: MessageFlags.Ephemeral,
+                components: [
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.Button,
+                                style: ButtonStyle.Primary,
+                                label: "Submit Application",
+                                custom_id: SubmitGroupApplication.id(
+                                    masterListChannelId,
+                                    masterListMessageId,
+                                    input.message.id,
+                                ),
+                            },
+                        ],
+                    },
+                ],
+            },
+        };
+    },
+};
+
+export const SubmitGroupApplication = {
+    id: (masterListChannelId: string, masterListMessageId: string, groupMessageId: string) => {
+        return `SubmitGroupApplication_${masterListChannelId}_${masterListMessageId}_${groupMessageId}`;
+    },
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const [_, masterListChannelId, masterListMessageId, groupMessageId] = input.data.custom_id.split("_");
+
+        const groupMessage = await GetChannelMessage(input.channel_id, groupMessageId);
+        const groupMainEmbed = groupMessage.embeds[0];
+        const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
+
+        const groupChannelId = Unformat(groupMainEmbedFields[EmbedFieldNames.GroupChannel], FormattingPatterns.Channel);
+
+        await CreateMessage(groupChannelId, {
+            content: `Application received. ${groupMainEmbedFields[EmbedFieldNames.GroupLeader]} Accept?`,
+            embeds: [
+                {
+                    title: `<@${input.member!.user.id}>`,
+                    description: "Additional details",
+                    fields: [
+                        { name: "Character Name", value: "Asmongoldseller", inline: true },
+                        { name: "Class", value: "Berserker", inline: true },
+                        { name: "Item Level", value: "1337", inline: true },
+                    ],
+                },
+            ],
+            components: [
+                {
+                    type: ComponentType.ActionRow,
+                    components: [
+                        {
+                            type: ComponentType.Button,
+                            style: ButtonStyle.Primary,
+                            custom_id: AcceptApplication.id(
+                                masterListChannelId,
+                                masterListMessageId,
+                                input.channel_id,
+                                input.message.id,
+                            ),
+                            label: "Accept Application",
+                        },
+                    ],
+                },
+            ],
+        });
+
+        return {
+            type: InteractionResponseType.UpdateMessage,
+            data: {
+                content:
+                    "Success! Your application has been posted in the group channel and the group leader has been notified.",
+                flags: MessageFlags.Ephemeral,
+            },
+        };
+    },
+};
+
+export const AcceptApplication = {
+    id: (masterListChannelId: string, masterListMessageId: string, groupsChannelId: string, groupMessageId: string) => {
+        return `AcceptApplication_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
+    },
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const [_, masterListChannelId, masterListMessageId, groupsChannelId, groupMessageId] = input.data.custom_id
+            .split("_");
+
+        const isAdminUser = (BigInt(input.member!.permissions) & PermissionFlagsBits.Administrator) ===
+            PermissionFlagsBits.Administrator;
+
+        const groupMessage = await GetChannelMessage(groupsChannelId, groupMessageId);
+        const groupMainEmbed = groupMessage.embeds[0];
+        const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
+        const groupLeaderFormatted = groupMainEmbedFields[EmbedFieldNames.GroupLeader];
+        const groupLeaderId = Unformat(groupLeaderFormatted, FormattingPatterns.User);
+
+        if (!isAdminUser || input.member!.user.id !== groupLeaderId) {
+            return {
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data: {
+                    content:
+                        `You do not have permission to edit this group. Only the group leader ${groupLeaderFormatted} and users with full admin permissions can edit`,
+                    flags: MessageFlags.Ephemeral,
+                },
+            };
+        }
+
+        const applicationEmbed = input.message.embeds[0];
+        const applicantUserId = Unformat(applicationEmbed.title!, FormattingPatterns.User);
+
+        const groupRoleId = Unformat(groupMainEmbedFields[EmbedFieldNames.GroupRole], FormattingPatterns.Role);
+        await AddGuildMemberRole(input.guild_id!, applicantUserId, groupRoleId);
+
+        groupMessage.embeds.push({
+            title: applicationEmbed.title,
+            description: applicationEmbed.description,
+            fields: applicationEmbed.fields,
+        });
+
+        await EditMessage(groupsChannelId, groupMessageId, { embeds: groupMessage.embeds });
+
+        const masterListMessage = await GetChannelMessage(masterListChannelId, masterListMessageId);
+        const masterListMainEmbed = GetEmbedFields<MasterListMainEmbedFields>(masterListMessage.embeds[0]);
+        LogChannelMessage(masterListMainEmbed, {
+            content: `${applicationEmbed.title} has joined '${groupMainEmbed.title}'`,
+        });
+
+        return {
+            type: InteractionResponseType.ChannelMessageWithSource,
+            data: {
+                content: `${applicationEmbed.title} has joined the group`,
+            },
+        };
+    },
+};
+
+export const LeaveGroup = {
+    id: (masterListChannelId: string, masterListMessageId: string) => {
+        return `LeaveGroup_${masterListChannelId}_${masterListMessageId}`;
+    },
+    // deno-lint-ignore require-await
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const [_, masterListChannelId, masterListMessageId] = input.data.custom_id;
+        const groupMainEmbed = input.message.embeds[0];
+        const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
+        const groupRoleFormatted = groupMainEmbedFields[EmbedFieldNames.GroupRole];
+        const groupRoleId = Unformat(groupRoleFormatted, FormattingPatterns.Role);
+
+        if (!input.member?.roles.find((role) => role === groupRoleId)) {
+            return {
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data: {
+                    content: `You are not a member of this group`,
+                    flags: MessageFlags.Ephemeral,
+                },
+            };
+        }
+
+        return {
+            type: InteractionResponseType.ChannelMessageWithSource,
+            data: {
+                content: "Are you sure?",
+                flags: MessageFlags.Ephemeral,
+                components: [
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.Button,
+                                style: ButtonStyle.Danger,
+                                label: "Yes",
+                                custom_id: LeaveGroupConfirm.id(
+                                    masterListChannelId,
+                                    masterListMessageId,
+                                    input.message.id,
+                                ),
+                            },
+                        ],
+                    },
+                ],
+            },
+        };
+    },
+};
+
+export const LeaveGroupConfirm = {
+    id: (masterListChannelId: string, masterListMessageId: string, groupMessageId: string) => {
+        return `ConfirmLeaveGroup_${masterListChannelId}_${masterListMessageId}_${groupMessageId}`;
+    },
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const [_, masterListChannelId, masterListMessageId, groupMessageId] = input.data.custom_id;
+
+        const groupMessage = await GetChannelMessage(input.channel_id, groupMessageId);
+        const groupMainEmbed = groupMessage.embeds[0];
+        const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
+
+        const groupRoleId = Unformat(groupMainEmbedFields[EmbedFieldNames.GroupRole], FormattingPatterns.Role);
+        await RemoveGuildMemberRole(input.guild_id!, input.member!.user.id, groupRoleId);
+        const userFormatted = `<@${input.member!.user.id}>`;
+
+        const newEmbeds = groupMessage.embeds.filter((embed) => embed.title !== userFormatted);
+
+        await EditMessage(input.channel_id, groupMessageId, { embeds: newEmbeds });
+
+        const masterListMessage = await GetChannelMessage(masterListChannelId, masterListMessageId);
+        const masterListMainEmbed = GetEmbedFields<MasterListMainEmbedFields>(masterListMessage.embeds[0]);
+        LogChannelMessage(masterListMainEmbed, {
+            content: `<@${input.member?.user.id}> has left '${groupMainEmbed.title}'`,
+        });
+
+        return {
+            type: InteractionResponseType.UpdateMessage,
+            data: {
+                content: "You have left the group",
+            },
+        };
+    },
+};
+
+export const EditGroupMember = {
+    id: (masterListChannelId: string, masterListMessageId: string) => {
+        return `GroupMemberEdit_${masterListChannelId}_${masterListMessageId}`;
+    },
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const [_, masterListChannelId, masterListMessageId] = input.data.custom_id.split("_");
+        return {
+            type: InteractionResponseType.ChannelMessageWithSource,
+            data: {
+                content: "Edit group member is not implemented yet",
+                flags: MessageFlags.Ephemeral,
+            },
+        };
+    },
+};
+
+export const EditGroup = {
+    id: (masterListChannelId: string, masterListMessageId: string) => {
+        return `GroupEdit_${masterListChannelId}_${masterListMessageId}`;
+    },
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const [_, masterListChannelId, masterListMessageId] = input.data.custom_id.split("_");
+        const isAdminUser = (BigInt(input.member!.permissions) & PermissionFlagsBits.Administrator) ===
+            PermissionFlagsBits.Administrator;
+
+        const groupMainEmbed = input.message.embeds[0];
+        const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
+        const groupLeaderFormatted = groupMainEmbedFields[EmbedFieldNames.GroupLeader];
+        const groupLeaderId = Unformat(groupLeaderFormatted, FormattingPatterns.User);
+
+        if (!isAdminUser || input.member!.user.id !== groupLeaderId) {
+            return {
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data: {
+                    content:
+                        `You do not have permission to edit this group. Only the group leader ${groupLeaderFormatted} and users with full admin permissions can edit`,
+                    flags: MessageFlags.Ephemeral,
+                },
+            };
+        }
+
+        return {
+            type: InteractionResponseType.ChannelMessageWithSource,
+            data: {
+                content: "Edit menu is not implemented yet",
+                flags: MessageFlags.Ephemeral,
+            },
+        };
+    },
+};
+
+export const Buttons: Record<string, Button> = {
+    AddGroup,
+    SubmitNewGroup,
+    ApplyToGroup,
+    SubmitGroupApplication,
+    AcceptApplication,
+    LeaveGroup,
+    LeaveGroupConfirm,
+    EditGroupMember,
+    EditGroup,
+};

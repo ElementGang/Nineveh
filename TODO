@@ -2,7 +2,7 @@ Commands:
   ✔ create guild command @done(22-06-05 17:34)
     ✔ boostraps, registers other commands @done(22-06-05 17:34)
     ✔ converts current channel to master list @done(22-06-12 19:24)
-  ☐ create group from existing role/channel
+  ☐ create group from existing role/channel - does everything that the add group button does but with some params filled in
 
 Summary channel:
   ✔ Create group button @done(22-06-12 15:25)
@@ -12,11 +12,11 @@ Summary channel:
       ✔ create role for group membership @done(22-06-18 14:53)
       ✔ post the group in groups channel @done(22-06-12 19:58)
       ✔ refresh master list, adding an embed for the group @done(22-06-19 18:15)
-  ☐ roster menu
-    ☐ shows ephemeral listing all your characters
-    ☐ edit character button - pick existing or create new
-      ☐ name, class, ilvl
-    ☐ delete character
+  ✘ roster menu @cancelled(22-06-20 20:38)
+    ✘ shows ephemeral listing all your characters @cancelled(22-06-20 20:38)
+    ✘ edit character button - pick existing or create new @cancelled(22-06-20 20:38)
+      ✘ name, class, ilvl @cancelled(22-06-20 20:38)
+    ✘ delete character @cancelled(22-06-20 20:38)
 
 Groups channel:
   ☐ ui for individual groups
@@ -24,23 +24,32 @@ Groups channel:
       ✔ description (can include scheduling info) @done(22-06-19 16:02)
       ☐ members
       ✔ channel @done(22-06-19 16:02)
-    ☐ apply button - shows ephemeral to pick which character to join on
-    ☐ edit button - shows ephemeral to edit the activities, name, description, policy or delete
-    ☐ kick button - shows ephemeral for group leaders to allow kicking member from group
+    ☐ apply button
+      ☐ message in groups channel, mentions leader and has buttons for accept/decline (only leader/admin can click)
+        ☐ accept:
+          ☐ adds role to member
+          ✘ adds character details to groups embed @cancelled(22-06-20 20:39)
+          ☐ notifies member of acceptance (dm?)
+          ☐ logs member joined
+    ☐ edit button - shows ephemeral to edit the name, description, membership policy, leader, delete group and kick members
+      ☐ restricted to admin and group leader
+      ☐ edit name modal - modifies group embed, master list embed, channel name, role name
+      ☐ edit description modal - modifies group embed, master list embed
+      ☐ edit membership policy - modified group embed
+      ☐ edit leader - modify group embed, master list embed, notify new leader, log change
+      ☐ delete group - delete group message, remove from master list, delete role, delete channel
+      ☐ kick members - ephemeral with selection menu of members and kick button, notifies member (dm?), removes role, updates master list member count & group embed member list, log change
     ☐ leave button
+      ☐ restricted to member of the group (has group role)
+      ☐ ephemeral "are you sure" - removes role, updates master list member count & group embed member list, log change
 
-Logging channel:
-  ✔ new groups @done(22-06-19 20:07)
-  ☐ member joined group
-  ☐ member left group
 
-Private group channels:
-  Nothing to do!
 
 Stretch goals:
-  ☐ add channel for characters with no group
+  ✘ add channel for characters with no group @cancelled(22-06-20 20:39)
   ☐ advertise group in any server
   ☐ add group activities (tell people to use description for now)
+  ☐ invite to group
   ☐ market channel
   ☐ global command list syncs fully (gets list, edit/create ones in our list, delete old commands)
   ☐ game templates
