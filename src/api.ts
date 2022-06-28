@@ -1,7 +1,9 @@
 import {
     APIChatInputApplicationCommandInteraction,
+    APIEmbed,
     APIInteraction,
     APIInteractionResponse,
+    APIMessageSelectMenuInteractionData,
     APISelectMenuComponent,
     ApplicationCommandType,
     ComponentType,
@@ -12,6 +14,8 @@ import nacl from "nacl";
 import { Commands } from "./commands.ts";
 import { Buttons } from "./buttons.ts";
 import { Buffer } from "std/node/buffer.ts";
+import { DynamicSelectMenuPrefix } from "./types.ts";
+import { Modals } from "./modals.ts";
 
 const encoder = new TextEncoder();
 export function encode(x: string | Uint8Array): Uint8Array {
@@ -106,34 +110,62 @@ export async function HandleInteraction(
                     break;
                 }
                 case ComponentType.SelectMenu: {
-                    const selectMenu = interaction.message.components?.flatMap((x) => x.components).find((y) =>
-                        y.type === ComponentType.SelectMenu && y.custom_id === interaction.data.custom_id
-                    ) as APISelectMenuComponent;
-                    if (selectMenu) {
-                        for (const options of selectMenu.options) {
-                            options.default = interaction.data.values.includes(options.value);
+                    // deno-lint-ignore no-inner-declarations
+                    function SetEmbedFields(embeds: APIEmbed[], data: APIMessageSelectMenuInteractionData) {
+                        const [_, fieldName] = data.custom_id.split("_");
+                        // Update all embed fields who's name match the custom id of this select menu
+                        const embedFields = embeds.flatMap((embed) =>
+                            embed.fields?.filter((f) => f.name === fieldName) ?? []
+                        );
+                        for (const embedField of embedFields) {
+                            if (embedField && data.values.length === 1) {
+                                const value = data.values[0];
+                                // Capitalize first letter of any values
+                                embedField.value = value[0].toUpperCase() + value.slice(1).toLowerCase();
+                            }
+                            // TODO: Multi-select is not handled, join the values?
                         }
                     }
 
-                    // Update first embed field with value of this change if there is a field with the same name as the custom id
-                    const embedField = interaction.message.embeds[0]?.fields?.find((f) =>
-                        f.name === selectMenu.custom_id
-                    );
-                    if (embedField && interaction.data.values.length === 1) {
-                        const value = interaction.data.values[0];
-                        embedField.value = value[0].toUpperCase() + value.slice(1).toLowerCase();
+                    // Behaviour of dynamic select menu is to set all embed fields with names matching the select menu custom id to the same value
+                    // This will modify the message that the select menu is attached to
+                    if (interaction.data.custom_id.startsWith(DynamicSelectMenuPrefix)) {
+                        const selectMenu = interaction.message.components?.flatMap((x) => x.components).find((y) =>
+                            y.type === ComponentType.SelectMenu && y.custom_id === interaction.data.custom_id
+                        ) as APISelectMenuComponent;
+                        if (selectMenu) {
+                            for (const options of selectMenu.options) {
+                                options.default = interaction.data.values.includes(options.value);
+                            }
+                        }
+
+                        SetEmbedFields(interaction.message.embeds, interaction.data);
+
+                        const result: APIInteractionResponse = {
+                            type: InteractionResponseType.UpdateMessage,
+                            data: {
+                                embeds: interaction.message.embeds,
+                                components: interaction.message.components,
+                            },
+                        };
+                        await respond(200, result);
+                    } else {
+                        await respond(404, "");
+                        console.error(`Select menu interaction not found: ${interaction.data.custom_id}`);
                     }
 
-                    const result: APIInteractionResponse = {
-                        type: InteractionResponseType.UpdateMessage,
-                        data: {
-                            embeds: interaction.message.embeds,
-                            components: interaction.message.components,
-                        },
-                    };
-                    await respond(200, result);
                     break;
                 }
+            }
+            break;
+        }
+        case InteractionType.ModalSubmit: {
+            const modal = Object.entries(Modals).find((entry) => interaction.data.custom_id.startsWith(entry[0]));
+            if (modal) {
+                await respond(200, await modal[1].interaction(interaction));
+            } else {
+                await respond(404, "");
+                console.error(`Modal submission interaction not found: ${interaction.data.custom_id}`);
             }
             break;
         }

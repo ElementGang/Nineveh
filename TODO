@@ -19,18 +19,20 @@ Summary channel:
     ✘ delete character @cancelled(22-06-20 20:38)
 
 Groups channel:
-  ☐ ui for individual groups
-    ☐ shows:
+  ✔ ui for individual groups @done(22-06-27 18:08)
+    ✔ shows: @done(22-06-27 12:35)
       ✔ description (can include scheduling info) @done(22-06-19 16:02)
-      ☐ members
+      ✔ members @done(22-06-27 12:26)
       ✔ channel @done(22-06-19 16:02)
-    ☐ apply button
-      ☐ message in groups channel, mentions leader and has buttons for accept/decline (only leader/admin can click)
-        ☐ accept:
-          ☐ adds role to member
-          ✘ adds character details to groups embed @cancelled(22-06-20 20:39)
-          ☐ notifies member of acceptance (dm?)
-          ☐ logs member joined
+    ✔ apply button @done(22-06-27 12:35)
+      ✔ application form to fill @done(22-06-27 18:08)
+        ✔ editable character name, ilvl, class @done(22-06-27 18:08)
+      ✔ message in groups channel, mentions leader and has buttons for accept (only leader/admin can click) @done(22-06-27 12:26)
+        ✔ accept: @done(22-06-27 12:26)
+          ✔ adds role to member @done(22-06-27 12:26)
+          ✔ adds character details to groups embed @done(22-06-27 12:26)
+          ✔ notifies member of acceptance (dm?) @done(22-06-27 12:26)
+          ✔ logs member joined @done(22-06-27 12:26)
     ☐ edit button - shows ephemeral to edit the name, description, membership policy, leader, delete group and kick members
       ☐ restricted to admin and group leader
       ☐ edit name modal - modifies group embed, master list embed, channel name, role name
@@ -39,11 +41,14 @@ Groups channel:
       ☐ edit leader - modify group embed, master list embed, notify new leader, log change
       ☐ delete group - delete group message, remove from master list, delete role, delete channel
       ☐ kick members - ephemeral with selection menu of members and kick button, notifies member (dm?), removes role, updates master list member count & group embed member list, log change
-    ☐ leave button
-      ☐ restricted to member of the group (has group role)
-      ☐ ephemeral "are you sure" - removes role, updates master list member count & group embed member list, log change
+    ✔ leave button @done(22-06-27 12:27)
+      ✔ restricted to member of the group (has group role) @done(22-06-27 12:27)
+      ✔ leader cant leave @done(22-06-27 12:27)
+      ✔ ephemeral "are you sure" - removes role, updates master list member count & group embed member list, log change @done(22-06-27 18:08)
 
-
+☐ no duplicate group names
+☐ tidier member list?
+☐ do old buttons cause errors?
 
 Stretch goals:
   ✘ add channel for characters with no group @cancelled(22-06-20 20:39)
@@ -51,7 +56,7 @@ Stretch goals:
   ☐ add group activities (tell people to use description for now)
   ☐ invite to group
   ☐ market channel
-  ☐ global command list syncs fully (gets list, edit/create ones in our list, delete old commands)
+  ✔ global command list syncs fully (gets list, edit/create ones in our list, delete old commands) @done(22-06-26 15:28)
   ☐ game templates
   ☐ schedule management (e.g. ping people automatically)
   ☐ ephemeral groups

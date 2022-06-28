@@ -9,6 +9,7 @@ import {
     MessageFlags,
     OverwriteType,
     PermissionFlagsBits,
+    TextInputStyle,
 } from "discord-api-types";
 import {
     AddGuildMemberRole,
@@ -17,14 +18,24 @@ import {
     CreateMessage,
     CreateMessageUrl,
     EditMessage,
+    EphemeralMessage,
     GetChannel,
     GetChannelMessage,
     GetEmbedFields,
-    LogChannelMessage,
     RemoveGuildMemberRole,
     Unformat,
 } from "./discord.ts";
-import { EmbedFieldNames, GroupMainEmbedFields, MasterListMainEmbedFields } from "./types.ts";
+import { EditGroupCharacter, EmbedUpdate } from "./modals.ts";
+import {
+    ClassSelectMenuOptions,
+    DynamicSelectMenuId,
+    EmbedFieldNames,
+    GetCharacterEmbedFromList,
+    GroupMainEmbedFields,
+    LogChannelMessage,
+    MasterListMainEmbedFields,
+    MemberCharacterEmbedFields,
+} from "./types.ts";
 
 export interface Button {
     interaction: (
@@ -66,12 +77,24 @@ export const AddGroup = {
                 flags: MessageFlags.Ephemeral,
                 embeds: [
                     {
-                        title: `${input.member?.user.username}'s Group`,
+                        title: `${input.member!.user.username}'s Group`,
                         description: "",
                         fields: [
                             { name: EmbedFieldNames.GroupLeader, value: `<@${input.member!.user.id}>`, inline: true },
-                            { name: EmbedFieldNames.MembershipPolicy, value: "Private", inline: true },
-                            { name: EmbedFieldNames.ChannelVisibility, value: "Private", inline: true },
+                            // { name: EmbedFieldNames.MembershipPolicy, value: "Private", inline: true },
+                            // { name: EmbedFieldNames.ChannelVisibility, value: "Private", inline: true },
+                        ],
+                    },
+                    {
+                        title: "Character Details",
+                        fields: [
+                            {
+                                name: EmbedFieldNames.MemberCharacterName,
+                                value: input.member!.user.username,
+                                inline: true,
+                            },
+                            { name: EmbedFieldNames.MemberCharacterILVL, value: "????", inline: true },
+                            { name: EmbedFieldNames.MemberCharacterClass, value: "????", inline: true },
                         ],
                     },
                 ],
@@ -82,14 +105,14 @@ export const AddGroup = {
                             {
                                 type: ComponentType.Button,
                                 style: ButtonStyle.Primary,
-                                custom_id: "GroupName",
-                                label: "Change Name",
+                                custom_id: GroupAddEditGroup.id(),
+                                label: "Edit Group",
                             },
                             {
                                 type: ComponentType.Button,
                                 style: ButtonStyle.Primary,
-                                custom_id: "GroupDescription",
-                                label: "Change Description",
+                                custom_id: GroupAddEditCharacter.id(),
+                                label: "Edit Character",
                             },
                         ],
                     },
@@ -98,48 +121,63 @@ export const AddGroup = {
                         components: [
                             {
                                 type: ComponentType.SelectMenu,
-                                disabled: true,
-                                custom_id: EmbedFieldNames.MembershipPolicy,
-                                options: [
-                                    {
-                                        "label": "Public membership - anyone can join",
-                                        "value": "public",
-                                        "description":
-                                            "Group can be joined by anyone without approval from the group leader",
-                                    },
-                                    {
-                                        "label": "Private membership - group leader approves",
-                                        "value": "private",
-                                        "description": "Group leader must approve requests to join the group",
-                                        "default": true,
-                                    },
-                                ],
+                                custom_id: DynamicSelectMenuId(
+                                    EmbedFieldNames.MemberCharacterClass,
+                                ),
+                                placeholder: "Select class",
+                                max_values: 1,
+                                min_values: 1,
+                                options: ClassSelectMenuOptions,
                             },
                         ],
                     },
-                    {
-                        type: ComponentType.ActionRow,
-                        components: [
-                            {
-                                type: ComponentType.SelectMenu,
-                                disabled: true,
-                                custom_id: EmbedFieldNames.ChannelVisibility,
-                                options: [
-                                    {
-                                        "label": "Public group channel",
-                                        "value": "public",
-                                        "description": "Everyone can see the groups channel",
-                                    },
-                                    {
-                                        "label": "Private group channel",
-                                        "value": "private",
-                                        "description": "Only group members can see the groups channel",
-                                        "default": true,
-                                    },
-                                ],
-                            },
-                        ],
-                    },
+                    // {
+                    //     type: ComponentType.ActionRow,
+                    //     components: [
+                    //         {
+                    //             type: ComponentType.SelectMenu,
+                    //             disabled: true,
+                    //             custom_id: DynamicSelectMenuId(EmbedFieldNames.MembershipPolicy),
+                    //             options: [
+                    //                 {
+                    //                     "label": "Public membership - anyone can join",
+                    //                     "value": "public",
+                    //                     "description":
+                    //                         "Group can be joined by anyone without approval from the group leader",
+                    //                 },
+                    //                 {
+                    //                     "label": "Private membership - group leader approves",
+                    //                     "value": "private",
+                    //                     "description": "Group leader must approve requests to join the group",
+                    //                     "default": true,
+                    //                 },
+                    //             ],
+                    //         },
+                    //     ],
+                    // },
+                    // {
+                    //     type: ComponentType.ActionRow,
+                    //     components: [
+                    //         {
+                    //             type: ComponentType.SelectMenu,
+                    //             disabled: true,
+                    //             custom_id: DynamicSelectMenuId(EmbedFieldNames.ChannelVisibility),
+                    //             options: [
+                    //                 {
+                    //                     "label": "Public group channel",
+                    //                     "value": "public",
+                    //                     "description": "Everyone can see the groups channel",
+                    //                 },
+                    //                 {
+                    //                     "label": "Private group channel",
+                    //                     "value": "private",
+                    //                     "description": "Only group members can see the groups channel",
+                    //                     "default": true,
+                    //                 },
+                    //             ],
+                    //         },
+                    //     ],
+                    // },
                     {
                         type: ComponentType.ActionRow,
                         components: [
@@ -157,6 +195,120 @@ export const AddGroup = {
     },
 };
 
+export const GroupAddEditCharacter = {
+    id: () => {
+        return `GroupAddEditCharacter`;
+    },
+    // deno-lint-ignore require-await
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const characterEmbed = input.message.embeds[1];
+        const characterEmbedFields = GetEmbedFields<MemberCharacterEmbedFields>(characterEmbed);
+
+        return {
+            type: InteractionResponseType.Modal,
+            data: {
+                title: "Edit Character Details",
+                custom_id: EmbedUpdate.id(1),
+                components: [
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: EmbedFieldNames.MemberCharacterName,
+                                value: characterEmbedFields[EmbedFieldNames.MemberCharacterName],
+                                style: TextInputStyle.Short,
+                                label: EmbedFieldNames.MemberCharacterName,
+                                required: true,
+                                min_length: 2,
+                                max_length: 16,
+                            },
+                        ],
+                    },
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: EmbedFieldNames.MemberCharacterILVL,
+                                value: characterEmbedFields[EmbedFieldNames.MemberCharacterILVL],
+                                style: TextInputStyle.Short,
+                                label: EmbedFieldNames.MemberCharacterILVL,
+                                required: true,
+                                min_length: 3,
+                                max_length: 4,
+                            },
+                        ],
+                    },
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: "Description",
+                                value: characterEmbed.description,
+                                placeholder:
+                                    "Additional notes e.g. preferred schedule or anything additional character information",
+                                style: TextInputStyle.Paragraph,
+                                label: "Notes",
+                                required: false,
+                            },
+                        ],
+                    },
+                ],
+            },
+        };
+    },
+};
+
+export const GroupAddEditGroup = {
+    id: () => {
+        return `GroupAddEditGroup`;
+    },
+    // deno-lint-ignore require-await
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const groupEmbed = input.message.embeds[0];
+
+        return {
+            type: InteractionResponseType.Modal,
+            data: {
+                title: "Edit Group Details",
+                custom_id: EmbedUpdate.id(0),
+                components: [
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: "Title",
+                                value: groupEmbed.title,
+                                style: TextInputStyle.Short,
+                                label: "Group Name",
+                                required: true,
+                            },
+                        ],
+                    },
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: "Description",
+                                value: groupEmbed.description,
+                                style: TextInputStyle.Paragraph,
+                                label: "Group Description",
+                                placeholder:
+                                    "Extra information about the group, e.g. bosses you do, schedule, classes you're recruiting, etc",
+                                required: false,
+                            },
+                        ],
+                    },
+                ],
+            },
+        };
+    },
+};
+
 export const SubmitNewGroup = {
     id: (masterListMessageId: string) => {
         return `SubmitNewGroup_${masterListMessageId}`;
@@ -165,6 +317,11 @@ export const SubmitNewGroup = {
         const [_, masterListMessageId] = input.data.custom_id.split("_");
 
         const submitEmbed = input.message.embeds[0];
+        const leaderMemberDetailsEmbed = input.message.embeds[1];
+        leaderMemberDetailsEmbed.title = input.member!.user.username;
+        leaderMemberDetailsEmbed.fields![0].value = `<@${input.member!.user.id}> - ${
+            leaderMemberDetailsEmbed.fields![0].value
+        }`;
 
         const masterListMessage = await GetChannelMessage(input.channel_id, masterListMessageId);
         const masterListMainEmbedFields = GetEmbedFields<MasterListMainEmbedFields>(masterListMessage.embeds[0]);
@@ -196,11 +353,16 @@ export const SubmitNewGroup = {
                     type: OverwriteType.Role,
                     allow: String(PermissionFlagsBits.ViewChannel),
                 },
+                {
+                    id: Deno.env.get("APP_ID")!,
+                    type: OverwriteType.Member,
+                    allow: String(PermissionFlagsBits.ViewChannel),
+                },
             ],
         });
 
         const groupsChannelIdFormatted = masterListMainEmbedFields[EmbedFieldNames.GroupListChannel];
-        const groupsChannelId = Unformat(groupsChannelIdFormatted, FormattingPatterns.Channel);
+        const groupsChannelId = Unformat(groupsChannelIdFormatted, FormattingPatterns.Channel)!;
 
         // Post group ad
         const groupsChannelMessage = await CreateMessage(groupsChannelId, {
@@ -212,18 +374,19 @@ export const SubmitNewGroup = {
                     fields: [
                         submitEmbed.fields![0], // Leader field
                         {
-                            name: EmbedFieldNames.GroupChannel,
-                            value: `<#${groupChannel.id}>`,
+                            name: EmbedFieldNames.GroupRole,
+                            value: `<@&${groupRole.id}>`,
                             inline: true,
                         },
                         {
-                            name: EmbedFieldNames.GroupRole,
-                            value: `<@&${groupRole.id}>`,
+                            name: EmbedFieldNames.GroupChannel,
+                            value: `<#${groupChannel.id}>`,
                             inline: true,
                         },
                         ...submitEmbed.fields!.slice(1, submitEmbed.fields!.length),
                     ],
                 },
+                leaderMemberDetailsEmbed,
             ],
             components: [
                 {
@@ -244,13 +407,13 @@ export const SubmitNewGroup = {
                         {
                             type: ComponentType.Button,
                             style: ButtonStyle.Secondary,
-                            custom_id: EditGroupMember.id(masterListChannel.id, masterListMessageId),
-                            label: "Change My Details",
+                            custom_id: GroupMemberEdit.id(),
+                            label: "Edit My Details",
                         },
                         {
                             type: ComponentType.Button,
                             style: ButtonStyle.Secondary,
-                            custom_id: EditGroup.id(masterListChannel.id, masterListMessageId),
+                            custom_id: GroupEdit.id(masterListChannel.id, masterListMessageId),
                             label: "Edit Group",
                         },
                     ],
@@ -343,9 +506,50 @@ export const ApplyToGroup = {
         return {
             type: InteractionResponseType.ChannelMessageWithSource,
             data: {
-                content: "Application details",
+                content:
+                    "The application below will be sent to the group channel and displayed on the group's member list if the application is accepted",
+                embeds: [
+                    {
+                        title: `${input.member!.user.username}'s Group Application`,
+                        fields: [
+                            {
+                                name: EmbedFieldNames.MemberCharacterName,
+                                value: input.member!.user.username,
+                                inline: true,
+                            },
+                            { name: EmbedFieldNames.MemberCharacterILVL, value: "????", inline: true },
+                            { name: EmbedFieldNames.MemberCharacterClass, value: "????", inline: true },
+                        ],
+                    },
+                ],
                 flags: MessageFlags.Ephemeral,
                 components: [
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.Button,
+                                style: ButtonStyle.Primary,
+                                label: "Edit",
+                                custom_id: GroupApplicationEditCharacter.id(),
+                            },
+                        ],
+                    },
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.SelectMenu,
+                                custom_id: DynamicSelectMenuId(
+                                    EmbedFieldNames.MemberCharacterClass,
+                                ),
+                                placeholder: "Select class",
+                                max_values: 1,
+                                min_values: 1,
+                                options: ClassSelectMenuOptions,
+                            },
+                        ],
+                    },
                     {
                         type: ComponentType.ActionRow,
                         components: [
@@ -367,6 +571,72 @@ export const ApplyToGroup = {
     },
 };
 
+export const GroupApplicationEditCharacter = {
+    id: () => {
+        return `GroupApplicationEditCharacter`;
+    },
+    // deno-lint-ignore require-await
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const characterEmbed = input.message.embeds[0];
+        const characterEmbedFields = GetEmbedFields<MemberCharacterEmbedFields>(characterEmbed);
+
+        return {
+            type: InteractionResponseType.Modal,
+            data: {
+                title: "Edit Character Details",
+                custom_id: EmbedUpdate.id(0),
+                components: [
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: EmbedFieldNames.MemberCharacterName,
+                                value: characterEmbedFields[EmbedFieldNames.MemberCharacterName],
+                                style: TextInputStyle.Short,
+                                label: EmbedFieldNames.MemberCharacterName,
+                                required: true,
+                                min_length: 2,
+                                max_length: 16,
+                            },
+                        ],
+                    },
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: EmbedFieldNames.MemberCharacterILVL,
+                                value: characterEmbedFields[EmbedFieldNames.MemberCharacterILVL],
+                                style: TextInputStyle.Short,
+                                label: EmbedFieldNames.MemberCharacterILVL,
+                                required: true,
+                                min_length: 3,
+                                max_length: 4,
+                            },
+                        ],
+                    },
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: "Description",
+                                value: characterEmbed.description,
+                                placeholder:
+                                    "Additional notes e.g. preferred schedule or anything additional character information",
+                                style: TextInputStyle.Paragraph,
+                                label: "Notes",
+                                required: false,
+                            },
+                        ],
+                    },
+                ],
+            },
+        };
+    },
+};
+
 export const SubmitGroupApplication = {
     id: (masterListChannelId: string, masterListMessageId: string, groupMessageId: string) => {
         return `SubmitGroupApplication_${masterListChannelId}_${masterListMessageId}_${groupMessageId}`;
@@ -374,25 +644,23 @@ export const SubmitGroupApplication = {
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const [_, masterListChannelId, masterListMessageId, groupMessageId] = input.data.custom_id.split("_");
 
+        const applicationEmbed = input.message.embeds[0];
+        applicationEmbed.fields![0].value = `<@${input.member!.user.id}> - ${applicationEmbed.fields![0].value}`;
+
         const groupMessage = await GetChannelMessage(input.channel_id, groupMessageId);
         const groupMainEmbed = groupMessage.embeds[0];
         const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
 
-        const groupChannelId = Unformat(groupMainEmbedFields[EmbedFieldNames.GroupChannel], FormattingPatterns.Channel);
+        const groupChannelId = Unformat(
+            groupMainEmbedFields[EmbedFieldNames.GroupChannel],
+            FormattingPatterns.Channel,
+        )!;
+
+        // TODO: validate the application embed?
 
         await CreateMessage(groupChannelId, {
-            content: `Application received. ${groupMainEmbedFields[EmbedFieldNames.GroupLeader]} Accept?`,
-            embeds: [
-                {
-                    title: `<@${input.member!.user.id}>`,
-                    description: "Additional details",
-                    fields: [
-                        { name: "Character Name", value: "Asmongoldseller", inline: true },
-                        { name: "Class", value: "Berserker", inline: true },
-                        { name: "Item Level", value: "1337", inline: true },
-                    ],
-                },
-            ],
+            content: `${groupMainEmbedFields[EmbedFieldNames.GroupLeader]} group application received`,
+            embeds: [applicationEmbed],
             components: [
                 {
                     type: ComponentType.ActionRow,
@@ -404,7 +672,7 @@ export const SubmitGroupApplication = {
                                 masterListChannelId,
                                 masterListMessageId,
                                 input.channel_id,
-                                input.message.id,
+                                groupMessageId,
                             ),
                             label: "Accept Application",
                         },
@@ -418,6 +686,7 @@ export const SubmitGroupApplication = {
             data: {
                 content:
                     "Success! Your application has been posted in the group channel and the group leader has been notified.",
+                components: [],
                 flags: MessageFlags.Ephemeral,
             },
         };
@@ -441,21 +710,16 @@ export const AcceptApplication = {
         const groupLeaderFormatted = groupMainEmbedFields[EmbedFieldNames.GroupLeader];
         const groupLeaderId = Unformat(groupLeaderFormatted, FormattingPatterns.User);
 
-        if (!isAdminUser || input.member!.user.id !== groupLeaderId) {
-            return {
-                type: InteractionResponseType.ChannelMessageWithSource,
-                data: {
-                    content:
-                        `You do not have permission to edit this group. Only the group leader ${groupLeaderFormatted} and users with full admin permissions can edit`,
-                    flags: MessageFlags.Ephemeral,
-                },
-            };
+        if (!isAdminUser && input.member!.user.id !== groupLeaderId) {
+            return EphemeralMessage(
+                `You do not have permission to edit this group. Only the group leader ${groupLeaderFormatted} and users with full admin permissions can edit`,
+            );
         }
 
         const applicationEmbed = input.message.embeds[0];
-        const applicantUserId = Unformat(applicationEmbed.title!, FormattingPatterns.User);
+        const applicantUserId = Unformat(applicationEmbed.title!, FormattingPatterns.User)!;
 
-        const groupRoleId = Unformat(groupMainEmbedFields[EmbedFieldNames.GroupRole], FormattingPatterns.Role);
+        const groupRoleId = Unformat(groupMainEmbedFields[EmbedFieldNames.GroupRole], FormattingPatterns.Role)!;
         await AddGuildMemberRole(input.guild_id!, applicantUserId, groupRoleId);
 
         groupMessage.embeds.push({
@@ -487,20 +751,21 @@ export const LeaveGroup = {
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
-        const [_, masterListChannelId, masterListMessageId] = input.data.custom_id;
+        const [_, masterListChannelId, masterListMessageId] = input.data.custom_id.split("_");
         const groupMainEmbed = input.message.embeds[0];
         const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
         const groupRoleFormatted = groupMainEmbedFields[EmbedFieldNames.GroupRole];
         const groupRoleId = Unformat(groupRoleFormatted, FormattingPatterns.Role);
+        const groupLeaderId = Unformat(groupMainEmbedFields[EmbedFieldNames.GroupLeader], FormattingPatterns.User);
 
         if (!input.member?.roles.find((role) => role === groupRoleId)) {
-            return {
-                type: InteractionResponseType.ChannelMessageWithSource,
-                data: {
-                    content: `You are not a member of this group`,
-                    flags: MessageFlags.Ephemeral,
-                },
-            };
+            return EphemeralMessage(`You are not a member of this group`);
+        }
+
+        if (input.member!.user.id === groupLeaderId) {
+            return EphemeralMessage(
+                `You cannot leave a group while you are the leader. You can pass leader to another user or delete the group in Edit Group.`,
+            );
         }
 
         return {
@@ -516,7 +781,7 @@ export const LeaveGroup = {
                                 type: ComponentType.Button,
                                 style: ButtonStyle.Danger,
                                 label: "Yes",
-                                custom_id: LeaveGroupConfirm.id(
+                                custom_id: ConfirmLeaveGroup.id(
                                     masterListChannelId,
                                     masterListMessageId,
                                     input.message.id,
@@ -530,24 +795,30 @@ export const LeaveGroup = {
     },
 };
 
-export const LeaveGroupConfirm = {
+export const ConfirmLeaveGroup = {
     id: (masterListChannelId: string, masterListMessageId: string, groupMessageId: string) => {
         return `ConfirmLeaveGroup_${masterListChannelId}_${masterListMessageId}_${groupMessageId}`;
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
-        const [_, masterListChannelId, masterListMessageId, groupMessageId] = input.data.custom_id;
+        const [_, masterListChannelId, masterListMessageId, groupMessageId] = input.data.custom_id.split("_");
 
         const groupMessage = await GetChannelMessage(input.channel_id, groupMessageId);
         const groupMainEmbed = groupMessage.embeds[0];
         const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
 
-        const groupRoleId = Unformat(groupMainEmbedFields[EmbedFieldNames.GroupRole], FormattingPatterns.Role);
+        const groupRoleId = Unformat(groupMainEmbedFields[EmbedFieldNames.GroupRole], FormattingPatterns.Role)!;
         await RemoveGuildMemberRole(input.guild_id!, input.member!.user.id, groupRoleId);
         const userFormatted = `<@${input.member!.user.id}>`;
 
         const newEmbeds = groupMessage.embeds.filter((embed) => embed.title !== userFormatted);
 
         await EditMessage(input.channel_id, groupMessageId, { embeds: newEmbeds });
+
+        const groupChannelId = Unformat(
+            groupMainEmbedFields[EmbedFieldNames.GroupChannel],
+            FormattingPatterns.Channel,
+        )!;
+        await CreateMessage(groupChannelId, { content: `<@${input.member?.user.id}> has left the group` });
 
         const masterListMessage = await GetChannelMessage(masterListChannelId, masterListMessageId);
         const masterListMainEmbed = GetEmbedFields<MasterListMainEmbedFields>(masterListMessage.embeds[0]);
@@ -559,31 +830,98 @@ export const LeaveGroupConfirm = {
             type: InteractionResponseType.UpdateMessage,
             data: {
                 content: "You have left the group",
+                components: [],
             },
         };
     },
 };
 
-export const EditGroupMember = {
-    id: (masterListChannelId: string, masterListMessageId: string) => {
-        return `GroupMemberEdit_${masterListChannelId}_${masterListMessageId}`;
+export const GroupMemberEdit = {
+    id: () => {
+        return `GroupMemberEdit`;
     },
+    // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
-        const [_, masterListChannelId, masterListMessageId] = input.data.custom_id.split("_");
+        const groupMainEmbed = input.message.embeds[0];
+        const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
+        const groupRoleFormatted = groupMainEmbedFields[EmbedFieldNames.GroupRole];
+        const groupRoleId = Unformat(groupRoleFormatted, FormattingPatterns.Role);
+
+        if (!input.member?.roles.find((role) => role === groupRoleId)) {
+            return EphemeralMessage(`You are not a member of this group`);
+        }
+
+        const characterEmbed = GetCharacterEmbedFromList(input.message.embeds, input.member!.user.id);
+
+        if (!characterEmbed) {
+            return EphemeralMessage(
+                "Could not find character details to modify - has the embed for your character been deleted?",
+            );
+        }
+        const characterEmbedFields = GetEmbedFields<MemberCharacterEmbedFields>(characterEmbed);
+
         return {
-            type: InteractionResponseType.ChannelMessageWithSource,
+            type: InteractionResponseType.Modal,
             data: {
-                content: "Edit group member is not implemented yet",
-                flags: MessageFlags.Ephemeral,
+                title: "Edit Character Details",
+                custom_id: EditGroupCharacter.id(input.channel_id, input.message.id),
+                components: [
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: EmbedFieldNames.MemberCharacterName,
+                                value: characterEmbedFields[EmbedFieldNames.MemberCharacterName].split(" - ")[1],
+                                style: TextInputStyle.Short,
+                                label: EmbedFieldNames.MemberCharacterName,
+                                required: true,
+                                min_length: 2,
+                                max_length: 16,
+                            },
+                        ],
+                    },
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: EmbedFieldNames.MemberCharacterILVL,
+                                value: characterEmbedFields[EmbedFieldNames.MemberCharacterILVL],
+                                style: TextInputStyle.Short,
+                                label: EmbedFieldNames.MemberCharacterILVL,
+                                required: true,
+                                min_length: 3,
+                                max_length: 4,
+                            },
+                        ],
+                    },
+                    {
+                        type: ComponentType.ActionRow,
+                        components: [
+                            {
+                                type: ComponentType.TextInput,
+                                custom_id: "Description",
+                                value: characterEmbed.description,
+                                placeholder:
+                                    "Additional notes e.g. preferred schedule or anything additional character information",
+                                style: TextInputStyle.Paragraph,
+                                label: "Notes",
+                                required: false,
+                            },
+                        ],
+                    },
+                ],
             },
         };
     },
 };
 
-export const EditGroup = {
+export const GroupEdit = {
     id: (masterListChannelId: string, masterListMessageId: string) => {
         return `GroupEdit_${masterListChannelId}_${masterListMessageId}`;
     },
+    // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const [_, masterListChannelId, masterListMessageId] = input.data.custom_id.split("_");
         const isAdminUser = (BigInt(input.member!.permissions) & PermissionFlagsBits.Administrator) ===
@@ -595,23 +933,32 @@ export const EditGroup = {
         const groupLeaderId = Unformat(groupLeaderFormatted, FormattingPatterns.User);
 
         if (!isAdminUser || input.member!.user.id !== groupLeaderId) {
-            return {
-                type: InteractionResponseType.ChannelMessageWithSource,
-                data: {
-                    content:
-                        `You do not have permission to edit this group. Only the group leader ${groupLeaderFormatted} and users with full admin permissions can edit`,
-                    flags: MessageFlags.Ephemeral,
-                },
-            };
+            return EphemeralMessage(
+                `You do not have permission to edit this group. Only the group leader ${groupLeaderFormatted} and users with full admin permissions can edit`,
+            );
         }
 
-        return {
-            type: InteractionResponseType.ChannelMessageWithSource,
-            data: {
-                content: "Edit menu is not implemented yet",
-                flags: MessageFlags.Ephemeral,
-            },
-        };
+        return EphemeralMessage("Edit menu is not implemented yet");
+    },
+};
+
+export const KickGroupMember = {
+    id: (masterListChannelId: string, masterListMessageId: string) => {
+        return `KickGroupMember_${masterListChannelId}_${masterListMessageId}`;
+    },
+    // deno-lint-ignore require-await
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        return EphemeralMessage("Kick not implemented yet");
+    },
+};
+
+export const DeleteGroup = {
+    id: (masterListChannelId: string, masterListMessageId: string) => {
+        return `DeleteGroup_${masterListChannelId}_${masterListMessageId}`;
+    },
+    // deno-lint-ignore require-await
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        return EphemeralMessage("Delete not implemented yet");
     },
 };
 
@@ -622,7 +969,12 @@ export const Buttons: Record<string, Button> = {
     SubmitGroupApplication,
     AcceptApplication,
     LeaveGroup,
-    LeaveGroupConfirm,
-    EditGroupMember,
-    EditGroup,
+    ConfirmLeaveGroup,
+    GroupMemberEdit,
+    GroupEdit,
+    GroupAddEditCharacter,
+    GroupApplicationEditCharacter,
+    GroupAddEditGroup,
+    KickGroupMember,
+    DeleteGroup,
 };

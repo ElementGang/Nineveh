@@ -7,6 +7,7 @@ import {
     ButtonStyle,
     ComponentType,
     InteractionResponseType,
+    PermissionFlagsBits,
 } from "discord-api-types";
 import { CreateGuildApplicationCommand } from "./discord.ts";
 import { AddGroup } from "./buttons.ts";
@@ -15,7 +16,7 @@ import { EmbedFieldNames } from "./types.ts";
 export interface Command {
     name: string;
     description: string;
-    permissions: "admin" | "user";
+    permissions: bigint;
     scope: "global" | "server";
     parameters: APIApplicationCommandOption[];
     interaction: (
@@ -27,7 +28,7 @@ export const Commands: Command[] = [
     {
         name: "create-group-list",
         description: "Creates a group list in the channel this command is run to manage a set of groups.",
-        permissions: "admin",
+        permissions: PermissionFlagsBits.ManageChannels | PermissionFlagsBits.ManageRoles,
         scope: "global",
         parameters: [
             {

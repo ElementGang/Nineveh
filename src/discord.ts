@@ -1,10 +1,13 @@
 import {
+    APIApplicationCommand,
     APIChannel,
     APIEmbed,
+    APIInteractionResponse,
     APIMessage,
     APIRole,
     ApplicationCommandType,
-    FormattingPatterns,
+    InteractionResponseType,
+    MessageFlags,
     RESTPatchAPIChannelMessageJSONBody,
     RESTPostAPIApplicationCommandsJSONBody,
     RESTPostAPIChannelMessageJSONBody,
@@ -16,7 +19,6 @@ import {
 import { Command } from "./commands.ts";
 import * as PNG from "pngs";
 import { decode, encode } from "./api.ts";
-import { EmbedFieldNames, MasterListMainEmbedFields } from "./types.ts";
 
 function PostCmdToJson(
     command: Command,
@@ -27,7 +29,7 @@ function PostCmdToJson(
         description: command.description,
         dm_permission: false,
         options: command.parameters ?? [],
-        default_member_permissions: command.permissions === "admin" ? "0" : null,
+        default_member_permissions: String(command.permissions),
     };
 }
 
@@ -98,10 +100,18 @@ async function ApiInvokeVoid(
     }
 }
 
+export function GetGlobalApplicationCommands(): Promise<APIApplicationCommand[]> {
+    return ApiGet(Routes.applicationCommands(Deno.env.get("APP_ID")!));
+}
+
 export async function CreateGlobalApplicationCommand(
     cmd: Command,
 ): Promise<void> {
     await ApiInvoke("POST", Routes.applicationCommands(Deno.env.get("APP_ID")!), PostCmdToJson(cmd));
+}
+
+export function DeleteGlobalApplicationCommand(commandId: string): Promise<void> {
+    return ApiInvokeVoid("DELETE", Routes.applicationCommand(Deno.env.get("APP_ID")!, commandId));
 }
 
 export async function CreateGuildApplicationCommand(cmd: Command, guildID: string): Promise<void> {
@@ -153,20 +163,19 @@ export function GetEmbedFields<T>(embed: APIEmbed): T {
     return fields as unknown as T;
 }
 
-export function Unformat(formatted: string, pattern: RegExp): string {
-    return formatted.match(pattern)![1];
+export function Unformat(formatted: string, pattern: RegExp): string | undefined {
+    const match = formatted.match(pattern);
+    return match ? match[1] : undefined;
 }
 
-export async function LogChannelMessage(
-    masterListMainEmbedFields: MasterListMainEmbedFields,
-    message: RESTPostAPIChannelMessageJSONBody,
-): Promise<APIMessage | undefined> {
-    const logChannelIdFormatted = masterListMainEmbedFields[EmbedFieldNames.LogChannel];
-    if (logChannelIdFormatted) {
-        const logChannelId = Unformat(logChannelIdFormatted, FormattingPatterns.Channel);
-        return await CreateMessage(logChannelId, message);
-    }
-    return undefined;
+export function EphemeralMessage(message: string): APIInteractionResponse {
+    return {
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: {
+            content: message,
+            flags: MessageFlags.Ephemeral,
+        },
+    };
 }
 
 export async function Save<TState>(
