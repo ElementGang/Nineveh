@@ -2,13 +2,16 @@ import {
     APIApplicationCommand,
     APIChannel,
     APIEmbed,
+    APIGuildMember,
     APIInteractionResponse,
     APIMessage,
     APIRole,
+    APIUser,
     ApplicationCommandType,
     InteractionResponseType,
     MessageFlags,
     RESTPatchAPIChannelMessageJSONBody,
+    RESTPatchAPIGuildRoleJSONBody,
     RESTPostAPIApplicationCommandsJSONBody,
     RESTPostAPIChannelMessageJSONBody,
     RESTPostAPIGuildChannelJSONBody,
@@ -17,8 +20,8 @@ import {
     Routes,
 } from "discord-api-types";
 import { Command } from "./commands.ts";
-import * as PNG from "pngs";
-import { decode, encode } from "./api.ts";
+// import * as PNG from "pngs";
+// import { decode, encode } from "./api.ts";
 
 function PostCmdToJson(
     command: Command,
@@ -134,8 +137,28 @@ export function EditMessage(
     return ApiInvoke("PATCH", Routes.channelMessage(channelId, messageId), message);
 }
 
+export function DeleteMessage(channelId: string, messageId: string): Promise<void> {
+    return ApiInvokeVoid("DELETE", Routes.channelMessage(channelId, messageId));
+}
+
 export function CreateGuildRole(guildId: string, message: RESTPostAPIGuildRoleJSONBody): Promise<APIRole> {
     return ApiInvoke("POST", Routes.guildRoles(guildId), message);
+}
+
+export function GetGuildRoles(guildId: string): Promise<APIRole[]> {
+    return ApiGet(Routes.guildRoles(guildId));
+}
+
+export function ModifyGuildRole(
+    guildId: string,
+    roleId: string,
+    message: RESTPatchAPIGuildRoleJSONBody,
+): Promise<APIRole> {
+    return ApiInvoke("PATCH", Routes.guildRole(guildId, roleId), message);
+}
+
+export function DeleteGuildRole(guildId: string, roleId: string): Promise<void> {
+    return ApiInvokeVoid("DELETE", Routes.guildRole(guildId, roleId));
 }
 
 export function AddGuildMemberRole(guildId: string, userId: string, roleId: string): Promise<void> {
@@ -152,6 +175,18 @@ export function CreateGuildChannel(guildId: string, message: RESTPostAPIGuildCha
 
 export function GetChannel(channelId: string): Promise<APIChannel> {
     return ApiGet(Routes.channel(channelId));
+}
+
+export function DeleteChannel(channelId: string): Promise<void> {
+    return ApiInvokeVoid("DELETE", Routes.channel(channelId));
+}
+
+export function GetChannelMessages(channelId: string): Promise<APIMessage[]> {
+    return ApiGet(Routes.channelMessages(channelId));
+}
+
+export function GetGuildMember(guildId: string, userId: string): Promise<APIGuildMember> {
+    return ApiGet(Routes.guildMember(guildId, userId));
 }
 
 export function CreateMessageUrl(serverId: string, channelId: string, messageId: string): string {
@@ -178,51 +213,51 @@ export function EphemeralMessage(message: string): APIInteractionResponse {
     };
 }
 
-export async function Save<TState>(
-    state: TState,
-    toSend: Partial<APIMessage>,
-): Promise<BodyInit> {
-    const data = await Compression("compress", encode(JSON.stringify(state)));
-    const png = PNG.encode(data, Math.ceil(data.length / 4), 1);
+// export async function Save<TState>(
+//     state: TState,
+//     toSend: Partial<APIMessage>,
+// ): Promise<BodyInit> {
+//     const data = await Compression("compress", encode(JSON.stringify(state)));
+//     const png = PNG.encode(data, Math.ceil(data.length / 4), 1);
 
-    const formData = new FormData();
-    formData.append("payload_json", JSON.stringify(toSend));
-    formData.append(
-        `files[0]`,
-        new Blob([png], { type: "image/png" }),
-        "SPOILER_game-state.png",
-    );
-    return formData;
-}
+//     const formData = new FormData();
+//     formData.append("payload_json", JSON.stringify(toSend));
+//     formData.append(
+//         `files[0]`,
+//         new Blob([png], { type: "image/png" }),
+//         "SPOILER_game-state.png",
+//     );
+//     return formData;
+// }
 
-export async function Load<TState>(message: APIMessage): Promise<TState> {
-    const response = await fetch(message.attachments[0].url);
-    const data = await response.arrayBuffer();
-    const raw = await Compression(
-        "decompress",
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        PNG.decode(new Uint8Array(data)).image,
-    );
-    return JSON.parse(decode(raw)) as TState;
-}
+// export async function Load<TState>(message: APIMessage): Promise<TState> {
+//     const response = await fetch(message.attachments[0].url);
+//     const data = await response.arrayBuffer();
+//     const raw = await Compression(
+//         "decompress",
+//         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+//         PNG.decode(new Uint8Array(data)).image,
+//     );
+//     return JSON.parse(decode(raw)) as TState;
+// }
 
-async function Compression(
-    dir: "compress" | "decompress",
-    input: Uint8Array,
-): Promise<Uint8Array> {
-    const cs = dir === "compress" ? new CompressionStream("deflate") : new DecompressionStream("deflate");
-    const writer = cs.writable.getWriter();
-    await writer.write(input);
-    await writer.close();
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of cs.readable) {
-        chunks.push(chunk as Uint8Array);
-    }
-    const result = new Uint8Array(chunks.reduce((a, b) => a + b.length, 0));
-    let offset = 0;
-    for (const chunk of chunks) {
-        result.set(chunk, offset);
-        offset += chunk.length;
-    }
-    return result;
-}
+// async function Compression(
+//     dir: "compress" | "decompress",
+//     input: Uint8Array,
+// ): Promise<Uint8Array> {
+//     const cs = dir === "compress" ? new CompressionStream("deflate") : new DecompressionStream("deflate");
+//     const writer = cs.writable.getWriter();
+//     await writer.write(input);
+//     await writer.close();
+//     const chunks: Uint8Array[] = [];
+//     for await (const chunk of cs.readable) {
+//         chunks.push(chunk as Uint8Array);
+//     }
+//     const result = new Uint8Array(chunks.reduce((a, b) => a + b.length, 0));
+//     let offset = 0;
+//     for (const chunk of chunks) {
+//         result.set(chunk, offset);
+//         offset += chunk.length;
+//     }
+//     return result;
+// }

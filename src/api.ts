@@ -1,10 +1,7 @@
 import {
     APIChatInputApplicationCommandInteraction,
-    APIEmbed,
     APIInteraction,
     APIInteractionResponse,
-    APIMessageSelectMenuInteractionData,
-    APISelectMenuComponent,
     ApplicationCommandType,
     ComponentType,
     InteractionResponseType,
@@ -14,8 +11,10 @@ import nacl from "nacl";
 import { Commands } from "./commands.ts";
 import { Buttons } from "./buttons.ts";
 import { Buffer } from "std/node/buffer.ts";
-import { DynamicSelectMenuPrefix } from "./types.ts";
 import { Modals } from "./modals.ts";
+import { SelectMenus } from "./selectmenu.ts";
+import { logMode } from "./index.ts";
+import { EphemeralMessage } from "./discord.ts";
 
 const encoder = new TextEncoder();
 export function encode(x: string | Uint8Array): Uint8Array {
@@ -66,8 +65,37 @@ export async function HandleInteraction(
         return;
     }
 
-    const interaction = JSON.parse(decode(body)) as APIInteraction;
-    console.log(JSON.stringify(interaction));
+    const bodyDecoded = decode(body);
+
+    const interaction = JSON.parse(bodyDecoded) as APIInteraction;
+
+    if (logMode === "BOTH" || logMode === "RECEIVED") {
+        console.log(`RECEIVED JSON: ${bodyDecoded}`);
+    }
+
+    async function Respond<T>(
+        entries: Record<string, T>,
+        customId: string,
+        typeString: string,
+        bodyFunc: (input: T) => unknown,
+    ) {
+        const result = Object.entries(entries).find((entry) => customId.split("_")[0] === entry[0]);
+        const component = result?.[1] ?? undefined;
+        if (component) {
+            try {
+                const body = await bodyFunc(component);
+                await respond(200, body);
+            } catch (e: unknown) {
+                if (e instanceof Error) {
+                    const body = EphemeralMessage(e.message);
+                    await respond(200, body);
+                }
+            }
+        } else {
+            await respond(404, "");
+            console.error(`${typeString} not found: ${customId}`);
+        }
+    }
 
     switch (interaction.type) {
         case InteractionType.Ping:
@@ -79,11 +107,11 @@ export async function HandleInteraction(
             switch (interaction.data.type) {
                 case ApplicationCommandType.ChatInput:
                     {
-                        const result = Commands.find((x) => interaction.data.name === x.name);
-                        if (result) {
+                        const command = Commands.find((x) => interaction.data.name === x.name);
+                        if (command) {
                             await respond(
                                 200,
-                                result.interaction(interaction as APIChatInputApplicationCommandInteraction),
+                                await command.interaction(interaction as APIChatInputApplicationCommandInteraction),
                             );
                         } else {
                             await respond(404, "");
@@ -98,75 +126,33 @@ export async function HandleInteraction(
         case InteractionType.MessageComponent: {
             switch (interaction.data.component_type) {
                 case ComponentType.Button: {
-                    const result = Object.entries(Buttons).find((entry) =>
-                        interaction.data.custom_id.startsWith(entry[0])
+                    Respond(
+                        Buttons,
+                        interaction.data.custom_id,
+                        "Button",
+                        (button) => button.interaction(interaction),
                     );
-                    if (result) {
-                        await respond(200, await result[1].interaction(interaction));
-                    } else {
-                        await respond(404, "");
-                        console.error(`Button interaction not found: ${interaction.data.custom_id}`);
-                    }
                     break;
                 }
                 case ComponentType.SelectMenu: {
-                    // deno-lint-ignore no-inner-declarations
-                    function SetEmbedFields(embeds: APIEmbed[], data: APIMessageSelectMenuInteractionData) {
-                        const [_, fieldName] = data.custom_id.split("_");
-                        // Update all embed fields who's name match the custom id of this select menu
-                        const embedFields = embeds.flatMap((embed) =>
-                            embed.fields?.filter((f) => f.name === fieldName) ?? []
-                        );
-                        for (const embedField of embedFields) {
-                            if (embedField && data.values.length === 1) {
-                                const value = data.values[0];
-                                // Capitalize first letter of any values
-                                embedField.value = value[0].toUpperCase() + value.slice(1).toLowerCase();
-                            }
-                            // TODO: Multi-select is not handled, join the values?
-                        }
-                    }
-
-                    // Behaviour of dynamic select menu is to set all embed fields with names matching the select menu custom id to the same value
-                    // This will modify the message that the select menu is attached to
-                    if (interaction.data.custom_id.startsWith(DynamicSelectMenuPrefix)) {
-                        const selectMenu = interaction.message.components?.flatMap((x) => x.components).find((y) =>
-                            y.type === ComponentType.SelectMenu && y.custom_id === interaction.data.custom_id
-                        ) as APISelectMenuComponent;
-                        if (selectMenu) {
-                            for (const options of selectMenu.options) {
-                                options.default = interaction.data.values.includes(options.value);
-                            }
-                        }
-
-                        SetEmbedFields(interaction.message.embeds, interaction.data);
-
-                        const result: APIInteractionResponse = {
-                            type: InteractionResponseType.UpdateMessage,
-                            data: {
-                                embeds: interaction.message.embeds,
-                                components: interaction.message.components,
-                            },
-                        };
-                        await respond(200, result);
-                    } else {
-                        await respond(404, "");
-                        console.error(`Select menu interaction not found: ${interaction.data.custom_id}`);
-                    }
-
+                    Respond(
+                        SelectMenus,
+                        interaction.data.custom_id,
+                        "Select menu",
+                        (menu) => menu.interaction(interaction),
+                    );
                     break;
                 }
             }
             break;
         }
         case InteractionType.ModalSubmit: {
-            const modal = Object.entries(Modals).find((entry) => interaction.data.custom_id.startsWith(entry[0]));
-            if (modal) {
-                await respond(200, await modal[1].interaction(interaction));
-            } else {
-                await respond(404, "");
-                console.error(`Modal submission interaction not found: ${interaction.data.custom_id}`);
-            }
+            Respond(
+                Modals,
+                interaction.data.custom_id,
+                "Modal",
+                (modal) => modal.interaction(interaction),
+            );
             break;
         }
     }

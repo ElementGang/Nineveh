@@ -33,28 +33,49 @@ Groups channel:
           ✔ adds character details to groups embed @done(22-06-27 12:26)
           ✔ notifies member of acceptance (dm?) @done(22-06-27 12:26)
           ✔ logs member joined @done(22-06-27 12:26)
-    ☐ edit button - shows ephemeral to edit the name, description, membership policy, leader, delete group and kick members
-      ☐ restricted to admin and group leader
-      ☐ edit name modal - modifies group embed, master list embed, channel name, role name
-      ☐ edit description modal - modifies group embed, master list embed
-      ☐ edit membership policy - modified group embed
-      ☐ edit leader - modify group embed, master list embed, notify new leader, log change
-      ☐ delete group - delete group message, remove from master list, delete role, delete channel
-      ☐ kick members - ephemeral with selection menu of members and kick button, notifies member (dm?), removes role, updates master list member count & group embed member list, log change
+    ✔ edit character @done(22-07-06 18:04)
+    ✔ edit group button - shows ephemeral to edit the name, description, membership policy, leader, delete group and kick members @done(22-07-06 18:04)
+      ✔ restricted to admin and group leader @done(22-07-06 18:04)
+      ✔ edit name modal - modifies group embed, master list embed, channel name, role name @done(22-07-06 18:04)
+      ✔ edit description modal - modifies group embed, master list embed @done(22-07-06 18:04)
+      ✔ kick members - ephemeral with selection menu of members and kick button, notifies member (dm?), removes role, updates master list member count & group embed member list, log change @done(22-07-06 18:04)
+      ✔ delete group - delete group message, remove from master list, delete role, delete channel @done(22-07-06 18:04)
     ✔ leave button @done(22-06-27 12:27)
       ✔ restricted to member of the group (has group role) @done(22-06-27 12:27)
       ✔ leader cant leave @done(22-06-27 12:27)
       ✔ ephemeral "are you sure" - removes role, updates master list member count & group embed member list, log change @done(22-06-27 18:08)
 
-☐ no duplicate group names
-☐ tidier member list?
-☐ do old buttons cause errors?
-
+checks:
+  ✔ character description doesn't carry over @done(22-07-06 03:50)
+  ✔ no duplicate group names @done(22-07-05 16:50)
+  ✔ character info validation @done(22-07-05 20:09)
+  ✔ edit group returns buttons for edit group details, kick, delete @done(22-07-06 03:22)
+  ✔ no mess when create group fails @done(22-07-06 18:03)
+  ✔ character details works @done(22-07-06 03:50)
+  ✔ permissions work correctly? @done(22-07-06 18:03)
+  ✔ delete group works @done(22-07-06 03:23)
+  ✔ kick member works @done(22-07-06 03:23)
+  ✔ can anything be spammed? @done(22-07-06 03:23)
+  ✔ do old buttons cause errors? yes @done(22-07-06 03:23)
+  ☐ change from embeds in message to message with 1 embed for master list
+  ✔ edit my details always works - should be members only @done(22-07-06 16:46)
+  ☐ flush extra embeds when accepting applications
+  ☐ nickname instead of username?
+  ☐ too many channels? what happens
+  ✔ group leader cant edit group @done(22-07-06 16:46)
+  ☐ fix bypass duplicate group name check
+  
+  
 Stretch goals:
+  ☐ kick members
+    ☐ reads embeds as well as role members - clears up embeds/roles for member
+  ☐ change leader
+  ☐ invite to group
+  ☐ log errors to log channel
+  ☐ roster channel
   ✘ add channel for characters with no group @cancelled(22-06-20 20:39)
   ☐ advertise group in any server
   ☐ add group activities (tell people to use description for now)
-  ☐ invite to group
   ☐ market channel
   ✔ global command list syncs fully (gets list, edit/create ones in our list, delete old commands) @done(22-06-26 15:28)
   ☐ game templates

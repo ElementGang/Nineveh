@@ -11,7 +11,7 @@ import {
 } from "discord-api-types";
 import { CreateGuildApplicationCommand } from "./discord.ts";
 import { AddGroup } from "./buttons.ts";
-import { EmbedFieldNames } from "./types.ts";
+import { CustomIds } from "./types.ts";
 
 export interface Command {
     name: string;
@@ -82,18 +82,18 @@ export const Commands: Command[] = [
                             color: 16729344,
                             fields: [
                                 {
-                                    name: EmbedFieldNames.GroupManagerRole,
+                                    name: CustomIds.GroupManagerRole,
                                     value: `<@&${selectedGroupManagerRole.value}>`,
                                     inline: true,
                                 },
                                 {
-                                    name: EmbedFieldNames.GroupListChannel,
+                                    name: CustomIds.GroupListChannel,
                                     value: `<#${selectedGroupListChannel.value}>`,
                                     inline: true,
                                 },
                                 ...(selectedLogChannel?.type === ApplicationCommandOptionType.Channel
                                     ? [{
-                                        name: EmbedFieldNames.LogChannel,
+                                        name: CustomIds.LogChannel,
                                         value: `<#${selectedLogChannel.value}>`,
                                         inline: true,
                                     }]
