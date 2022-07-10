@@ -45,7 +45,7 @@ function VerifyKey(
     const bodyData = encode(body);
     const timestamp = encode(headers("X-Signature-Timestamp") ?? "");
     const signature = fromHexString(headers("X-Signature-Ed25519") ?? "");
-    const publicKeyData = fromHexString(Deno.env.get("PUBLIC_KEY") ?? "");
+    const publicKeyData = fromHexString(Deno.env.get("DISCORD_PUBLIC_KEY") ?? "");
     return nacl.sign.detached.verify(
         concatArray(timestamp, bodyData),
         signature,
