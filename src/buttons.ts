@@ -68,7 +68,9 @@ export const AddGroup = {
             }
         }
 
-        const user = input.member!.user;
+        const member = input.member!;
+        const user = member.user;
+        const userName = member.nick ?? user.username;
 
         return {
             type: InteractionResponseType.ChannelMessageWithSource,
@@ -78,7 +80,7 @@ export const AddGroup = {
                 flags: MessageFlags.Ephemeral,
                 embeds: [
                     {
-                        title: `${user.username}'s Group`,
+                        title: `${userName}'s Group`,
                         description: "",
                         fields: [
                             { name: CustomIds.GroupLeader, value: `<@${user.id}>`, inline: true },
@@ -86,7 +88,7 @@ export const AddGroup = {
                             // { name: EmbedFieldNames.ChannelVisibility, value: "Private", inline: true },
                         ],
                     },
-                    DefaultCharacterEmbed(user.username, user.id),
+                    DefaultCharacterEmbed(userName, user.id),
                 ],
                 components: [
                     {
@@ -246,17 +248,19 @@ export const EditCharacter = {
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const [_, groupsChannelId, groupMessageId] = input.data.custom_id.split("_");
 
-        const user = input.member!.user;
+        const member = input.member!;
+        const user = member.user;
+        const memberUserName = member.nick ?? user.username;
         const updateMessageMode = groupsChannelId === "undefined" && groupMessageId === "undefined";
 
         function FillCharacterInfo(message: APIMessage): [APIEmbed | undefined, CharacterInfo] {
             const embed = FindGroupMemberEmbedInList(message.embeds, user.id);
             let characterInfo: CharacterInfo;
             if (embed) {
-                const [username, info] = UnformatMemberInfo(embed.title!);
-                characterInfo = info ?? DefaultCharacterInfo(username);
+                const [_username, info] = UnformatMemberInfo(embed.title!);
+                characterInfo = info ?? DefaultCharacterInfo(memberUserName);
             } else {
-                characterInfo = DefaultCharacterInfo(user.username);
+                characterInfo = DefaultCharacterInfo(memberUserName);
             }
             return [embed, characterInfo];
         }
@@ -287,12 +291,12 @@ export const EditCharacter = {
 };
 
 export const EditGroup = {
-    id: (masterListChannelId: string, masterListMessageId: string) => {
-        return `EditGroup_${masterListChannelId}_${masterListMessageId}`;
+    id: (masterListChannelId: string, masterListMessageId: string, masterListGroupMessageId: string) => {
+        return `EditGroup_${masterListChannelId}_${masterListMessageId}_${masterListGroupMessageId}`;
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
-        const [_, masterListChannelId, masterListMessageId] = input.data.custom_id.split("_");
+        const [_, masterListChannelId, masterListMessageId, masterListGroupMessageId] = input.data.custom_id.split("_");
 
         const isAdminUser = (BigInt(input.member!.permissions) & PermissionFlagsBits.Administrator) ===
             PermissionFlagsBits.Administrator;
@@ -322,7 +326,7 @@ export const EditGroup = {
                                 custom_id: EditGroupDetails.id(
                                     "Listed",
                                     masterListChannelId,
-                                    masterListMessageId,
+                                    masterListGroupMessageId,
                                     input.channel_id,
                                     input.message.id,
                                 ),
@@ -337,7 +341,12 @@ export const EditGroup = {
                             {
                                 type: ComponentType.Button,
                                 style: ButtonStyle.Danger,
-                                custom_id: DeleteGroup.id(masterListChannelId, masterListMessageId, input.message.id),
+                                custom_id: DeleteGroup.id(
+                                    masterListChannelId,
+                                    masterListMessageId,
+                                    masterListGroupMessageId,
+                                    input.message.id,
+                                ),
                                 label: "Delete Group",
                             },
                         ],
@@ -352,14 +361,14 @@ export const EditGroupDetails = {
     id: (
         mode: "Create" | "Listed",
         masterListChannelId: string,
-        masterListMessageId: string,
+        masterListGroupMessageId: string,
         groupsChannelId: string | undefined,
         groupMessageId: string | undefined,
     ) => {
-        return `EditGroupDetails_${mode}_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
+        return `EditGroupDetails_${mode}_${masterListChannelId}_${masterListGroupMessageId}_${groupsChannelId}_${groupMessageId}`;
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
-        const [_, mode, masterListChannelId, masterListMessageId, groupsChannelId, groupMessageId] = input.data
+        const [_, mode, masterListChannelId, masterListGroupMessageId, groupsChannelId, groupMessageId] = input.data
             .custom_id
             .split("_");
 
@@ -385,7 +394,7 @@ export const EditGroupDetails = {
                 custom_id: EditGroupInfo.id(
                     mode,
                     masterListChannelId,
-                    masterListMessageId,
+                    masterListGroupMessageId,
                     groupsChannelId,
                     groupMessageId,
                 ),
@@ -409,6 +418,10 @@ export const SubmitNewGroup = {
         const [_username, characterInfo] = UnformatMemberInfo(leaderMemberEmbed.title!);
         characterInfo!.Description = UnformatMemberDescription(leaderMemberEmbed.description ?? "");
 
+        const member = input.member!;
+        const user = member.user;
+        const username = member.nick ?? user.username;
+
         const groupInfo = await CreateGroup({
             MasterListChannelId: input.channel_id,
             MasterListMessageId: masterListMessageId,
@@ -417,8 +430,8 @@ export const SubmitNewGroup = {
             GuildId: input.guild_id!,
             ExistingChannelId: undefined,
             ExistingRoleId: undefined,
-            LeaderUserName: input.member!.user.username,
-            LeaderUserId: input.member!.user.id,
+            LeaderUserName: username,
+            LeaderUserId: user.id,
             CharacterInfo: characterInfo,
         });
 
@@ -477,14 +490,16 @@ export const ApplyToGroup = {
             };
         }
 
-        const user = input.member!.user;
+        const member = input.member!;
+        const user = member.user;
+        const memberUserName = member.nick ?? user.username;
 
         return {
             type: InteractionResponseType.ChannelMessageWithSource,
             data: {
                 content:
                     "The application below will be sent to the group channel and displayed on the group's member list if the application is accepted",
-                embeds: [DefaultCharacterEmbed(user.username, user.id)],
+                embeds: [DefaultCharacterEmbed(memberUserName, user.id)],
                 flags: MessageFlags.Ephemeral,
                 components: [
                     {
@@ -725,12 +740,18 @@ export const KickGroupMember = {
 };
 
 export const DeleteGroup = {
-    id: (masterListChannelId: string, masterListMessageId: string, groupMessageId: string) => {
-        return `DeleteGroup_${masterListChannelId}_${masterListMessageId}_${groupMessageId}`;
+    id: (
+        masterListChannelId: string,
+        masterListMessageId: string,
+        masterListGroupMessageId: string,
+        groupMessageId: string,
+    ) => {
+        return `DeleteGroup_${masterListChannelId}_${masterListMessageId}_${masterListGroupMessageId}_${groupMessageId}`;
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
-        const [_, masterListChannelId, masterListMessageId, groupMessageId] = input.data.custom_id.split("_");
+        const [_, masterListChannelId, masterListMessageId, masterListGroupMessageId, groupMessageId] = input.data
+            .custom_id.split("_");
 
         return {
             type: InteractionResponseType.ChannelMessageWithSource,
@@ -749,6 +770,7 @@ export const DeleteGroup = {
                                     ChannelDeleteBit | RoleDeleteBit,
                                     masterListChannelId,
                                     masterListMessageId,
+                                    masterListGroupMessageId,
                                     groupMessageId,
                                 ),
                             },
@@ -760,6 +782,7 @@ export const DeleteGroup = {
                                     0,
                                     masterListChannelId,
                                     masterListMessageId,
+                                    masterListGroupMessageId,
                                     groupMessageId,
                                 ),
                             },
@@ -775,11 +798,18 @@ const ChannelDeleteBit = 1 << 1;
 const RoleDeleteBit = 1 << 2;
 
 export const ConfirmDeleteGroup = {
-    id: (mode: number, masterListChannelId: string, masterListMessageId: string, groupMessageId: string) => {
-        return `ConfirmDeleteGroup_${mode}_${masterListChannelId}_${masterListMessageId}_${groupMessageId}`;
+    id: (
+        mode: number,
+        masterListChannelId: string,
+        masterListMessageId: string,
+        masterListGroupMessageId: string,
+        groupMessageId: string,
+    ) => {
+        return `ConfirmDeleteGroup_${mode}_${masterListChannelId}_${masterListMessageId}_${masterListGroupMessageId}_${groupMessageId}`;
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
-        const [_, modeStr, masterListChannelId, masterListMessageId, groupMessageId] = input.data.custom_id.split("_");
+        const [_, modeStr, masterListChannelId, masterListMessageId, masterListGroupMessageId, groupMessageId] = input
+            .data.custom_id.split("_");
         const mode = Number(modeStr);
 
         const deleteRole = (mode & RoleDeleteBit) === RoleDeleteBit;
@@ -788,6 +818,7 @@ export const ConfirmDeleteGroup = {
             input.guild_id!,
             masterListChannelId,
             masterListMessageId,
+            masterListGroupMessageId,
             input.channel_id,
             groupMessageId,
             deleteRole,

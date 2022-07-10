@@ -78,14 +78,16 @@ export const EditCharacterClass = {
         }
         const [_, groupsChannelId, groupMessageId] = input.data.custom_id.split("_");
 
-        const user = input.member!.user;
+        const member = input.member!;
+        const user = member.user;
+        const memberUserName = member.nick ?? user.username;
 
         const updateMessage = groupsChannelId === "undefined" && groupMessageId === "undefined";
 
         function ModifyMessage(message: APIMessage, data: APIMessageSelectMenuInteractionData) {
             let embed = FindGroupMemberEmbedInList(message.embeds, user.id);
             if (!embed) {
-                embed = DefaultCharacterEmbed(user.username, user.id); // Make a new one if it was not found for some reason
+                embed = DefaultCharacterEmbed(memberUserName, user.id); // Make a new one if it was not found for some reason
             }
 
             UpdateSelectMenu(input.message, data); // Select menu is always on the input message, not the target message

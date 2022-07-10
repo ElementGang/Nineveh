@@ -57,13 +57,17 @@ checks:
   ✔ kick member works @done(22-07-06 03:23)
   ✔ can anything be spammed? @done(22-07-06 03:23)
   ✔ do old buttons cause errors? yes @done(22-07-06 03:23)
-  ☐ change from embeds in message to message with 1 embed for master list
+  ✔ change from embeds in message to message with 1 embed for master list @done(22-07-10 20:19)
   ✔ edit my details always works - should be members only @done(22-07-06 16:46)
-  ☐ flush extra embeds when accepting applications
-  ☐ nickname instead of username?
-  ☐ too many channels? what happens
+  ✔ nickname instead of username? @done(22-07-10 20:19)
   ✔ group leader cant edit group @done(22-07-06 16:46)
+  ☐ too many channels? what happens - stops allowing new channels at 50
+  ✘ flush extra embeds when accepting applications @cancelled(22-07-10 20:50)
+
+known issues:
   ☐ fix bypass duplicate group name check
+  ☐ sometimes crashes on request response
+  ☐ sometimes create group response times out
   
   
 Stretch goals:

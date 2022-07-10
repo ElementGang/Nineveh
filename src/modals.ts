@@ -155,7 +155,9 @@ export const EditCharacterInfo = {
     },
     interaction: async (input: APIModalSubmitInteraction): Promise<APIInteractionResponse> => {
         const [_, mode, channelId, messageId] = input.data.custom_id.split("_");
-        const user = input.member!.user;
+        const member = input.member!;
+        const user = member.user;
+        const memberUserName = member.nick ?? user.username;
 
         function ModifyEmbed(embed: APIEmbed, data: APIModalSubmission): boolean {
             const [_username, current] = UnformatMemberInfo(embed.title!);
@@ -166,7 +168,7 @@ export const EditCharacterInfo = {
             );
 
             const description = byName[EditCharacterInfo.fields.Description];
-            const title = FormatMemberInfo(input.member!.user.username, {
+            const title = FormatMemberInfo(memberUserName, {
                 Name: byName[EditCharacterInfo.fields.Character],
                 ItemLevel: byName[EditCharacterInfo.fields.ItemLevel],
                 Class: current.Class,
@@ -186,7 +188,7 @@ export const EditCharacterInfo = {
 
             // Add an embed if we couldn't find one
             if (!embedToUpdate) {
-                embedToUpdate = DefaultCharacterEmbed(user.username, user.id);
+                embedToUpdate = DefaultCharacterEmbed(memberUserName, user.id);
                 channelMessage.embeds.push(embedToUpdate);
             }
 
@@ -208,7 +210,7 @@ export const EditCharacterInfo = {
 
             // Add an embed if we couldn't find one
             if (!embedToUpdate) {
-                embedToUpdate = DefaultCharacterEmbed(user.username, user.id);
+                embedToUpdate = DefaultCharacterEmbed(memberUserName, user.id);
                 message.embeds.push(embedToUpdate);
             }
 
@@ -238,11 +240,11 @@ export const EditGroupInfo = {
     id: (
         mode: "Create" | "Listed",
         masterListChannelId: string,
-        masterListMessageId: string,
+        masterListGroupMessageId: string,
         groupsChannelId: string | undefined,
         groupMessageId: string | undefined,
     ) => {
-        return `EditGroupInfo_${mode}_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
+        return `EditGroupInfo_${mode}_${masterListChannelId}_${masterListGroupMessageId}_${groupsChannelId}_${groupMessageId}`;
     },
     components: (
         groupName: string,
@@ -283,7 +285,7 @@ export const EditGroupInfo = {
         ];
     },
     interaction: async (input: APIModalSubmitInteraction): Promise<APIInteractionResponse> => {
-        const [_, mode, masterListChannelId, masterListMessageId, groupsChannelId, groupMessageId] = input.data
+        const [_, mode, masterListChannelId, masterListGroupMessageId, groupsChannelId, groupMessageId] = input.data
             .custom_id
             .split("_");
 
@@ -293,11 +295,19 @@ export const EditGroupInfo = {
         const newGroupName = byName[EditGroupInfo.fields.Name];
         const newDescription = byName[EditGroupInfo.fields.Description];
 
-        const masterListMessage = await GetChannelMessage(masterListChannelId, masterListMessageId);
+        const masterListGroupMessage = await GetChannelMessage(masterListChannelId, masterListGroupMessageId);
+        const masterListMessages = await GetChannelMessages(masterListChannelId);
+
+        function GroupNameTaken(current: string | undefined): boolean {
+            return masterListMessages.some((msg) => {
+                const thisMsgGroupName = msg.embeds[0]?.title;
+                return thisMsgGroupName === newGroupName && thisMsgGroupName !== current;
+            });
+        }
 
         if (mode === "Create") {
             // Check all against all group names, this group isn't listed yet
-            if (masterListMessage.embeds.some((embed) => embed.title === newGroupName)) {
+            if (GroupNameTaken(undefined)) {
                 return EphemeralMessage("Group with that name already exists, pick a different name");
             }
 
@@ -314,23 +324,19 @@ export const EditGroupInfo = {
         } else if (mode === "Listed") {
             const groupMessage = await GetChannelMessage(groupsChannelId, groupMessageId);
             const groupEmbed = groupMessage.embeds[0];
-            const currentGroupName = groupEmbed.title!;
-
-            // Check against group names, ignoring the existing embed with the current name
-            if (
-                masterListMessage.embeds.some((embed) =>
-                    embed.title === newGroupName && newGroupName !== currentGroupName
-                )
-            ) {
-                return EphemeralMessage("Group with that name already exists, pick a different name");
-            }
-
-            const masterListEmbed = masterListMessage.embeds.find((e) => e.title === currentGroupName)!;
-
             const roleId = Unformat(
                 GetEmbedFields<GroupMainEmbedFields>(groupEmbed)[CustomIds.GroupRole],
                 FormattingPatterns.Role,
             )!;
+            const currentGroupName = groupEmbed.title!;
+
+            // Check against group names, ignoring the existing embed with the current name
+            if (GroupNameTaken(currentGroupName)) {
+                return EphemeralMessage("Group with that name already exists, pick a different name");
+            }
+
+            const masterListEmbed = masterListGroupMessage.embeds[0];
+
             await ModifyGuildRole(input.guild_id!, roleId, { name: newGroupName });
 
             groupEmbed.title = newGroupName;
@@ -339,7 +345,9 @@ export const EditGroupInfo = {
 
             masterListEmbed.title = newGroupName;
             masterListEmbed.description = newDescription;
-            await EditMessage(masterListChannelId, masterListMessageId, { embeds: masterListMessage.embeds });
+            await EditMessage(masterListChannelId, masterListGroupMessageId, {
+                embeds: masterListGroupMessage.embeds,
+            });
 
             return {
                 type: InteractionResponseType.DeferredMessageUpdate,

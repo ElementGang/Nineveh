@@ -80,15 +80,18 @@ export async function CreateGroup(info: CreateGroupInfo): Promise<GroupInfo | st
     const groupsChannelIdFormatted = masterListMainEmbedFields[CustomIds.GroupListChannel];
     const groupsChannelId = Unformat(groupsChannelIdFormatted, FormattingPatterns.Channel)!;
 
-    if (masterListMessage.embeds.some((embed) => embed.title === groupName)) {
+    const masterListMessages = await GetChannelMessages(info.MasterListChannelId);
+
+    if (masterListMessages.some((msg) => msg.embeds[0].title === groupName)) {
         throw new Error("Group with that name already exists, pick a different name");
     }
     let roleId = info.ExistingRoleId;
     const roleExistedBefore = roleId !== undefined;
     let groupChannelId = info.ExistingChannelId;
     const channelExistedBefore = groupChannelId !== undefined;
+    let masterListGroupMessage: APIMessage | undefined = undefined;
     let groupsChannelMessage: APIMessage | undefined = undefined;
-    let masterListEmbedPosted = false;
+    let masterListGroupMessagePosted = false;
 
     try {
         if (roleId === undefined) {
@@ -154,13 +157,24 @@ export async function CreateGroup(info: CreateGroupInfo): Promise<GroupInfo | st
             description: memberDescription,
         };
 
+        const masterListGroupMessageEmbed: APIEmbed = {
+            title: groupName,
+            description: info.GroupDescription,
+            fields: [leaderEmbedField, roleEmbedField],
+        };
+
+        masterListGroupMessage = await CreateMessage(masterListMessage.channel_id, {
+            embeds: [masterListGroupMessageEmbed],
+        });
+        masterListGroupMessagePosted = masterListGroupMessage !== undefined;
+
         // Post group ad
         groupsChannelMessage = await CreateMessage(groupsChannelId, {
             embeds: [
                 {
                     title: groupName,
                     description: info.GroupDescription,
-                    url: CreateMessageUrl(guildId, info.MasterListChannelId, info.MasterListMessageId),
+                    url: CreateMessageUrl(guildId, info.MasterListChannelId, masterListGroupMessage.id),
                     fields: [leaderEmbedField, roleEmbedField, channelEmbedField],
                 },
                 leaderMemberEmbed,
@@ -190,7 +204,11 @@ export async function CreateGroup(info: CreateGroupInfo): Promise<GroupInfo | st
                         {
                             type: ComponentType.Button,
                             style: ButtonStyle.Secondary,
-                            custom_id: Buttons.EditGroup.id(masterListChannel.id, masterListMessage.id),
+                            custom_id: Buttons.EditGroup.id(
+                                masterListChannel.id,
+                                masterListMessage.id,
+                                masterListGroupMessage.id,
+                            ),
                             label: "Edit Group",
                         },
                     ],
@@ -198,15 +216,14 @@ export async function CreateGroup(info: CreateGroupInfo): Promise<GroupInfo | st
             ],
         });
 
-        masterListMessage.embeds.push({
-            title: groupName,
-            description: info.GroupDescription,
-            url: CreateMessageUrl(guildId, groupsChannelMessage.channel_id, groupsChannelMessage.id),
-            fields: [leaderEmbedField, roleEmbedField],
+        masterListGroupMessageEmbed.url = CreateMessageUrl(
+            guildId,
+            groupsChannelMessage.channel_id,
+            groupsChannelMessage.id,
+        );
+        await EditMessage(masterListGroupMessage.channel_id, masterListGroupMessage.id, {
+            embeds: [masterListGroupMessageEmbed],
         });
-
-        const updatedMessage = await EditMessage(masterListMessage.channel_id, masterListMessage.id, masterListMessage);
-        masterListEmbedPosted = updatedMessage.embeds.find((e) => e.title === groupName) !== undefined;
 
         LogChannelMessage(masterListMainEmbedFields, {
             content:
@@ -241,9 +258,8 @@ export async function CreateGroup(info: CreateGroupInfo): Promise<GroupInfo | st
         };
     } catch (e: unknown) {
         DeleteGroupComponents(
-            groupName,
             guildId,
-            masterListEmbedPosted ? masterListMessage : undefined,
+            masterListGroupMessagePosted ? masterListGroupMessage : undefined,
             groupsChannelMessage,
             roleExistedBefore ? undefined : roleId, // If role existed before, never delete it on cleanup
             channelExistedBefore ? undefined : groupChannelId, // If channel existed before, never delete it on cleanup
@@ -256,6 +272,7 @@ export async function DeleteGroup(
     guildId: string,
     masterListChannelId: string,
     masterListMessageId: string,
+    masterListGroupMessageId: string,
     groupsChannelId: string,
     groupsMessageId: string,
     deleteRole: boolean,
@@ -271,11 +288,11 @@ export async function DeleteGroup(
     const channelId = Unformat(channelFormatted, FormattingPatterns.Channel);
 
     const masterListMessage = await GetChannelMessage(masterListChannelId, masterListMessageId);
+    const masterListGroupMessage = await GetChannelMessage(masterListChannelId, masterListGroupMessageId);
 
     await DeleteGroupComponents(
-        groupName,
         guildId,
-        masterListMessage,
+        masterListGroupMessage,
         groupMessage,
         deleteRole ? roleId : undefined,
         deleteChannel ? channelId : undefined,
@@ -304,20 +321,18 @@ export async function DeleteGroup(
 }
 
 async function DeleteGroupComponents(
-    groupName: string, // guaranteed to be unique here
     guildId: string,
-    masterListMessage: APIMessage | undefined,
+    masterListGroupMessage: APIMessage | undefined,
     groupMessage: APIMessage | undefined,
     roleId: string | undefined,
     channelId: string | undefined,
 ) {
     const errors: Record<string, string> = {};
 
-    if (masterListMessage) {
-        const embeds = masterListMessage.embeds.filter((e) => e.title !== groupName);
+    if (masterListGroupMessage) {
         await TryWithRecordFail(
-            async () => await EditMessage(masterListMessage.channel_id, masterListMessage.id, { embeds: embeds }),
-            "Delete Master Embed",
+            async () => await DeleteMessage(masterListGroupMessage.channel_id, masterListGroupMessage.id),
+            "Delete Master List Group Message",
             errors,
         );
     }
