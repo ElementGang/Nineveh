@@ -82,7 +82,7 @@ export async function CreateGroup(info: CreateGroupInfo): Promise<GroupInfo | st
 
     const masterListMessages = await GetChannelMessages(info.MasterListChannelId);
 
-    if (masterListMessages.some((msg) => msg.embeds[0].title === groupName)) {
+    if (masterListMessages.some((msg) => msg.embeds[0]?.title === groupName)) {
         throw new Error("Group with that name already exists, pick a different name");
     }
     let roleId = info.ExistingRoleId;
