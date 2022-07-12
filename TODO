@@ -4,65 +4,6 @@ Commands:
     ✔ converts current channel to master list @done(22-06-12 19:24)
   ☐ create group from existing role/channel - does everything that the add group button does but with some params filled in
 
-Summary channel:
-  ✔ Create group button @done(22-06-12 15:25)
-    ✔ ephemeral message commands - name, description, activities, membership policy, channel visibility @done(22-06-18 14:53)
-    ✔ group created actions: @done(22-06-19 18:15)
-      ✔ create private group channel @done(22-06-18 14:53)
-      ✔ create role for group membership @done(22-06-18 14:53)
-      ✔ post the group in groups channel @done(22-06-12 19:58)
-      ✔ refresh master list, adding an embed for the group @done(22-06-19 18:15)
-  ✘ roster menu @cancelled(22-06-20 20:38)
-    ✘ shows ephemeral listing all your characters @cancelled(22-06-20 20:38)
-    ✘ edit character button - pick existing or create new @cancelled(22-06-20 20:38)
-      ✘ name, class, ilvl @cancelled(22-06-20 20:38)
-    ✘ delete character @cancelled(22-06-20 20:38)
-
-Groups channel:
-  ✔ ui for individual groups @done(22-06-27 18:08)
-    ✔ shows: @done(22-06-27 12:35)
-      ✔ description (can include scheduling info) @done(22-06-19 16:02)
-      ✔ members @done(22-06-27 12:26)
-      ✔ channel @done(22-06-19 16:02)
-    ✔ apply button @done(22-06-27 12:35)
-      ✔ application form to fill @done(22-06-27 18:08)
-        ✔ editable character name, ilvl, class @done(22-06-27 18:08)
-      ✔ message in groups channel, mentions leader and has buttons for accept (only leader/admin can click) @done(22-06-27 12:26)
-        ✔ accept: @done(22-06-27 12:26)
-          ✔ adds role to member @done(22-06-27 12:26)
-          ✔ adds character details to groups embed @done(22-06-27 12:26)
-          ✔ notifies member of acceptance (dm?) @done(22-06-27 12:26)
-          ✔ logs member joined @done(22-06-27 12:26)
-    ✔ edit character @done(22-07-06 18:04)
-    ✔ edit group button - shows ephemeral to edit the name, description, membership policy, leader, delete group and kick members @done(22-07-06 18:04)
-      ✔ restricted to admin and group leader @done(22-07-06 18:04)
-      ✔ edit name modal - modifies group embed, master list embed, channel name, role name @done(22-07-06 18:04)
-      ✔ edit description modal - modifies group embed, master list embed @done(22-07-06 18:04)
-      ✔ kick members - ephemeral with selection menu of members and kick button, notifies member (dm?), removes role, updates master list member count & group embed member list, log change @done(22-07-06 18:04)
-      ✔ delete group - delete group message, remove from master list, delete role, delete channel @done(22-07-06 18:04)
-    ✔ leave button @done(22-06-27 12:27)
-      ✔ restricted to member of the group (has group role) @done(22-06-27 12:27)
-      ✔ leader cant leave @done(22-06-27 12:27)
-      ✔ ephemeral "are you sure" - removes role, updates master list member count & group embed member list, log change @done(22-06-27 18:08)
-
-checks:
-  ✔ character description doesn't carry over @done(22-07-06 03:50)
-  ✔ no duplicate group names @done(22-07-05 16:50)
-  ✔ character info validation @done(22-07-05 20:09)
-  ✔ edit group returns buttons for edit group details, kick, delete @done(22-07-06 03:22)
-  ✔ no mess when create group fails @done(22-07-06 18:03)
-  ✔ character details works @done(22-07-06 03:50)
-  ✔ permissions work correctly? @done(22-07-06 18:03)
-  ✔ delete group works @done(22-07-06 03:23)
-  ✔ kick member works @done(22-07-06 03:23)
-  ✔ can anything be spammed? @done(22-07-06 03:23)
-  ✔ do old buttons cause errors? yes @done(22-07-06 03:23)
-  ✔ change from embeds in message to message with 1 embed for master list @done(22-07-10 20:19)
-  ✔ edit my details always works - should be members only @done(22-07-06 16:46)
-  ✔ nickname instead of username? @done(22-07-10 20:19)
-  ✔ group leader cant edit group @done(22-07-06 16:46)
-  ☐ too many channels? what happens - stops allowing new channels at 50
-  ✘ flush extra embeds when accepting applications @cancelled(22-07-10 20:50)
 
 known issues:
   ☐ fix bypass duplicate group name check
@@ -72,9 +13,11 @@ known issues:
   
 Stretch goals:
   ☐ kick members
-    ☐ reads embeds as well as role members - clears up embeds/roles for member
+    ☐ reads member details as well as role members - clears up embeds/roles for member
   ☐ change leader
   ☐ invite to group
+
+other:
   ☐ log errors to log channel
   ☐ roster channel
   ✘ add channel for characters with no group @cancelled(22-06-20 20:39)

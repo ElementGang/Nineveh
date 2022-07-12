@@ -1,6 +1,7 @@
 import {
     APIActionRowComponent,
     APIEmbed,
+    APIEmbedField,
     APIInteractionResponse,
     APIModalActionRowComponent,
     APIModalSubmission,
@@ -12,22 +13,19 @@ import {
     TextInputStyle,
 } from "discord-api-types";
 import {
-    CreateMessage,
     EditMessage,
     EphemeralMessage,
-    GetChannel,
     GetChannelMessage,
     GetChannelMessages,
     GetEmbedFields,
-    GetGuildRoles,
     ModifyGuildRole,
     Unformat,
 } from "./discord.ts";
 import {
     CharacterInfo,
     CustomIds,
-    DefaultCharacterEmbed,
-    FindGroupMemberEmbedInList,
+    DefaultCharacterField,
+    FindGroupMemberFieldInList,
     FormatMemberDescription,
     FormatMemberInfo,
     GroupMainEmbedFields,
@@ -159,9 +157,9 @@ export const EditCharacterInfo = {
         const user = member.user;
         const memberUserName = member.nick ?? user.username;
 
-        function ModifyEmbed(embed: APIEmbed, data: APIModalSubmission): boolean {
-            const [_username, current] = UnformatMemberInfo(embed.title!);
-            if (current === undefined) throw new Error(`Couldn't read member info from ${embed.title}`);
+        function ModifyEmbedField(field: APIEmbedField, data: APIModalSubmission): boolean {
+            const [_username, current] = UnformatMemberInfo(field.name);
+            if (current === undefined) throw new Error(`Couldn't read member info from ${field.name}`);
 
             const byName = Object.fromEntries(
                 data.components!.flatMap((row) => row.components.map((c) => [c.custom_id, c.value])),
@@ -175,24 +173,24 @@ export const EditCharacterInfo = {
                 Description: "", // Member info title doesn't use description
             });
             if (title) {
-                embed.title = title;
+                field.name = title;
             }
 
-            embed.description = FormatMemberDescription(input.member!.user.id, description);
+            field.value = FormatMemberDescription(input.member!.user.id, description);
             return title !== undefined;
         }
 
         if (mode === "EditOtherMessage") {
             const channelMessage = await GetChannelMessage(channelId, messageId);
-            let embedToUpdate = FindGroupMemberEmbedInList(channelMessage.embeds, input.member!.user.id);
+            let fieldToUpdate = FindGroupMemberFieldInList(channelMessage.embeds[0], input.member!.user.id);
 
-            // Add an embed if we couldn't find one
-            if (!embedToUpdate) {
-                embedToUpdate = DefaultCharacterEmbed(memberUserName, user.id);
-                channelMessage.embeds.push(embedToUpdate);
+            // Add a field if we couldn't find one
+            if (!fieldToUpdate) {
+                fieldToUpdate = DefaultCharacterField(memberUserName, user.id);
+                channelMessage.embeds[0].fields!.push(fieldToUpdate);
             }
 
-            const titleModified = ModifyEmbed(embedToUpdate, input.data);
+            const titleModified = ModifyEmbedField(fieldToUpdate, input.data);
             await EditMessage(channelId, messageId, { embeds: channelMessage.embeds });
 
             if (!titleModified) {
@@ -206,15 +204,15 @@ export const EditCharacterInfo = {
             };
         } else if (mode === "UpdateMessage") {
             const message = input.message!;
-            let embedToUpdate = FindGroupMemberEmbedInList(message.embeds, input.member!.user.id);
+            let fieldToUpdate = FindGroupMemberFieldInList(message.embeds[0], input.member!.user.id);
 
             // Add an embed if we couldn't find one
-            if (!embedToUpdate) {
-                embedToUpdate = DefaultCharacterEmbed(memberUserName, user.id);
-                message.embeds.push(embedToUpdate);
+            if (!fieldToUpdate) {
+                fieldToUpdate = DefaultCharacterField(memberUserName, user.id);
+                message.embeds[0].fields!.push(fieldToUpdate);
             }
 
-            const titleModified = ModifyEmbed(embedToUpdate, input.data);
+            const titleModified = ModifyEmbedField(fieldToUpdate, input.data);
 
             if (!titleModified) {
                 return EphemeralMessage(

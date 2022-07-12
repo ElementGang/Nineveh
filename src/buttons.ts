@@ -1,5 +1,5 @@
 import {
-    APIEmbed,
+    APIEmbedField,
     APIInteractionResponse,
     APIMessage,
     APIMessageComponentInteraction,
@@ -26,9 +26,9 @@ import {
     CharacterInfo,
     ClassSelectMenuOptions,
     CustomIds,
-    DefaultCharacterEmbed,
+    DefaultCharacterField,
     DefaultCharacterInfo,
-    FindGroupMemberEmbedInList,
+    FindGroupMemberFieldInList,
     GetUserIdFromMemberDescription,
     GroupMainEmbedFields,
     MasterListMainEmbedFields,
@@ -86,9 +86,9 @@ export const AddGroup = {
                             { name: CustomIds.GroupLeader, value: `<@${user.id}>`, inline: true },
                             // { name: EmbedFieldNames.MembershipPolicy, value: "Private", inline: true },
                             // { name: EmbedFieldNames.ChannelVisibility, value: "Private", inline: true },
+                            DefaultCharacterField(userName, user.id),
                         ],
                     },
-                    DefaultCharacterEmbed(userName, user.id),
                 ],
                 components: [
                     {
@@ -253,31 +253,31 @@ export const EditCharacter = {
         const memberUserName = member.nick ?? user.username;
         const updateMessageMode = groupsChannelId === "undefined" && groupMessageId === "undefined";
 
-        function FillCharacterInfo(message: APIMessage): [APIEmbed | undefined, CharacterInfo] {
-            const embed = FindGroupMemberEmbedInList(message.embeds, user.id);
+        function FillCharacterInfo(message: APIMessage): [APIEmbedField | undefined, CharacterInfo] {
+            const field = FindGroupMemberFieldInList(message.embeds[0], user.id);
             let characterInfo: CharacterInfo;
-            if (embed) {
-                const [_username, info] = UnformatMemberInfo(embed.title!);
+            if (field) {
+                const [_username, info] = UnformatMemberInfo(field.name);
                 characterInfo = info ?? DefaultCharacterInfo(memberUserName);
             } else {
                 characterInfo = DefaultCharacterInfo(memberUserName);
             }
-            return [embed, characterInfo];
+            return [field, characterInfo];
         }
 
-        let characterEmbed;
+        let characterField: APIEmbedField | undefined;
         let characterInfo: CharacterInfo;
         let buttonCustomId: string;
 
         if (updateMessageMode) {
             buttonCustomId = EditCharacterInfo.id("UpdateMessage");
-            [characterEmbed, characterInfo] = FillCharacterInfo(input.message);
+            [characterField, characterInfo] = FillCharacterInfo(input.message);
         } else {
             buttonCustomId = EditCharacterInfo.id("EditOtherMessage", groupsChannelId, groupMessageId);
             const message = await GetChannelMessage(groupsChannelId, groupMessageId);
-            [characterEmbed, characterInfo] = FillCharacterInfo(message);
+            [characterField, characterInfo] = FillCharacterInfo(message);
         }
-        characterInfo.Description = characterEmbed?.description ?? `<@${user.id}>`;
+        characterInfo.Description = characterField?.value ?? `<@${user.id}>`;
 
         return {
             type: InteractionResponseType.Modal,
@@ -412,11 +412,10 @@ export const SubmitNewGroup = {
         const [_, masterListMessageId] = input.data.custom_id.split("_");
 
         const submitEmbed = input.message.embeds[0];
-        const leaderMemberEmbed = input.message.embeds[1];
+        const leaderMemberField = submitEmbed.fields![1];
 
-        // TODO: Allow no character info
-        const [_username, characterInfo] = UnformatMemberInfo(leaderMemberEmbed.title!);
-        characterInfo!.Description = UnformatMemberDescription(leaderMemberEmbed.description ?? "");
+        const [_username, characterInfo] = UnformatMemberInfo(leaderMemberField.name);
+        characterInfo!.Description = UnformatMemberDescription(leaderMemberField.value ?? "");
 
         const member = input.member!;
         const user = member.user;
@@ -499,7 +498,7 @@ export const ApplyToGroup = {
             data: {
                 content:
                     "The application below will be sent to the group channel and displayed on the group's member list if the application is accepted",
-                embeds: [DefaultCharacterEmbed(memberUserName, user.id)],
+                embeds: [{ fields: [DefaultCharacterField(memberUserName, user.id)] }],
                 flags: MessageFlags.Ephemeral,
                 components: [
                     {
@@ -626,8 +625,8 @@ export const AcceptApplication = {
         }
 
         const guildId = input.guild_id!;
-        const membedEmbed = input.message.embeds[0];
-        const memberId = GetUserIdFromMemberDescription(membedEmbed.description!);
+        const memberField = input.message.embeds[0].fields![0];
+        const memberId = GetUserIdFromMemberDescription(memberField.value!);
         const member = await GetGuildMember(guildId, memberId);
 
         if (member.roles.find((roleId) => roleId === groupRoleId)) {
@@ -639,7 +638,7 @@ export const AcceptApplication = {
             masterListChannelId,
             masterListMessageId,
             memberId,
-            membedEmbed,
+            memberField,
             groupMessage,
             groupMainEmbedFields,
         );

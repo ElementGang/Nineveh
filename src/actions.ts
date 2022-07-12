@@ -1,5 +1,6 @@
 import {
     APIEmbed,
+    APIEmbedField,
     APIMessage,
     ButtonStyle,
     ChannelType,
@@ -32,6 +33,7 @@ import {
     CustomIds,
     FormatMemberDescription,
     FormatMemberInfo,
+    GetUserIdFromMemberDescription,
     GroupInfo,
     GroupMainEmbedFields,
     MasterListMainEmbedFields,
@@ -152,9 +154,9 @@ export async function CreateGroup(info: CreateGroupInfo): Promise<GroupInfo | st
 
         const memberInfoString = FormatMemberInfo(info.LeaderUserName, info.CharacterInfo)!; // Will never fail here
         const memberDescription = FormatMemberDescription(info.LeaderUserId, info.CharacterInfo?.Description);
-        const leaderMemberEmbed: APIEmbed = {
-            title: memberInfoString,
-            description: memberDescription,
+        const leaderMemberEmbedField: APIEmbedField = {
+            name: memberInfoString,
+            value: memberDescription,
         };
 
         const masterListGroupMessageEmbed: APIEmbed = {
@@ -175,9 +177,8 @@ export async function CreateGroup(info: CreateGroupInfo): Promise<GroupInfo | st
                     title: groupName,
                     description: info.GroupDescription,
                     url: CreateMessageUrl(guildId, info.MasterListChannelId, masterListGroupMessage.id),
-                    fields: [leaderEmbedField, roleEmbedField, channelEmbedField],
+                    fields: [leaderEmbedField, roleEmbedField, channelEmbedField, leaderMemberEmbedField],
                 },
-                leaderMemberEmbed,
             ],
             components: [
                 {
@@ -365,7 +366,7 @@ export async function AddToGroup(
     masterListChannelId: string,
     masterListMessageId: string,
     membedId: string,
-    memberEmbed: APIEmbed,
+    memberField: APIEmbedField,
     groupsMessage: APIMessage,
     groupMainEmbedFields: GroupMainEmbedFields,
 ) {
@@ -373,11 +374,7 @@ export async function AddToGroup(
 
     await AddGuildMemberRole(guildId, membedId, groupRoleId);
 
-    groupsMessage.embeds.push({
-        title: memberEmbed.title,
-        description: memberEmbed.description,
-        fields: memberEmbed.fields,
-    });
+    groupsMessage.embeds[0].fields!.push(memberField);
 
     await EditMessage(groupsMessage.channel_id, groupsMessage.id, { embeds: groupsMessage.embeds });
 
@@ -397,16 +394,18 @@ export async function RemoveFromGroup(
     memberId: string,
 ) {
     const groupMessage = await GetChannelMessage(groupsChannelId, groupsChannelMessageId);
-    const groupMainEmbed = groupMessage.embeds[0];
-    const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupMainEmbed);
+    const groupEmbed = groupMessage.embeds[0];
+    const groupMainEmbedFields = GetEmbedFields<GroupMainEmbedFields>(groupEmbed);
 
     const groupRoleId = Unformat(groupMainEmbedFields[CustomIds.GroupRole], FormattingPatterns.Role)!;
     await RemoveGuildMemberRole(guildId, memberId, groupRoleId);
-    const userFormatted = `<@${memberId}>`;
 
-    const newEmbeds = groupMessage.embeds.filter((embed) => embed.title !== userFormatted);
+    groupEmbed.fields = groupEmbed.fields!.filter((field) => {
+        if (!field.value || !field.value.startsWith("<")) return true; // Skip fields that aren't member details (they always start with a mention so "<")
+        return GetUserIdFromMemberDescription(field.value) !== memberId;
+    });
 
-    await EditMessage(groupsChannelId, groupsChannelMessageId, { embeds: newEmbeds });
+    await EditMessage(groupsChannelId, groupsChannelMessageId, { embeds: [groupEmbed] });
 
     const groupChannelId = Unformat(
         groupMainEmbedFields[CustomIds.GroupChannel],
@@ -417,6 +416,6 @@ export async function RemoveFromGroup(
     const masterListMessage = await GetChannelMessage(masterListChannelId, masterListMessageId);
     const masterListMainEmbed = GetEmbedFields<MasterListMainEmbedFields>(masterListMessage.embeds[0]);
     LogChannelMessage(masterListMainEmbed, {
-        content: `<@${memberId}> has left '${groupMainEmbed.title}'`,
+        content: `<@${memberId}> has left '${groupEmbed.title}'`,
     });
 }

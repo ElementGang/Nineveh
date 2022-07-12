@@ -9,7 +9,7 @@ import {
     InteractionResponseType,
 } from "discord-api-types";
 import { EditMessage, EphemeralMessage, GetChannelMessage } from "./discord.ts";
-import { DefaultCharacterEmbed, FindGroupMemberEmbedInList, FormatMemberInfo, UnformatMemberInfo } from "./types.ts";
+import { DefaultCharacterField, FindGroupMemberFieldInList, FormatMemberInfo, UnformatMemberInfo } from "./types.ts";
 
 export interface SelectMenu {
     interaction: (
@@ -85,19 +85,19 @@ export const EditCharacterClass = {
         const updateMessage = groupsChannelId === "undefined" && groupMessageId === "undefined";
 
         function ModifyMessage(message: APIMessage, data: APIMessageSelectMenuInteractionData) {
-            let embed = FindGroupMemberEmbedInList(message.embeds, user.id);
-            if (!embed) {
-                embed = DefaultCharacterEmbed(memberUserName, user.id); // Make a new one if it was not found for some reason
+            let field = FindGroupMemberFieldInList(message.embeds[0], user.id);
+            if (!field) {
+                field = DefaultCharacterField(memberUserName, user.id); // Make a new one if it was not found for some reason
             }
 
             UpdateSelectMenu(input.message, data); // Select menu is always on the input message, not the target message
 
-            const [username, current] = UnformatMemberInfo(embed.title!);
-            if (current === undefined) throw new Error(`Couldn't read member info from ${embed.title}`);
+            const [username, current] = UnformatMemberInfo(field.name);
+            if (current === undefined) throw new Error(`Couldn't read member info from ${field.name}`);
             const values = data.values;
             current.Class = values.length === 1 ? values[0] : values.join();
             const updated = FormatMemberInfo(username, current)!; // Set by menu options, can't cause validation failure
-            embed.title = updated;
+            field.name = updated;
         }
 
         if (updateMessage) {

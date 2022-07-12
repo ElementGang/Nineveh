@@ -6,7 +6,6 @@ import {
     APIInteractionResponse,
     APIMessage,
     APIRole,
-    APIUser,
     ApplicationCommandType,
     InteractionResponseType,
     MessageFlags,

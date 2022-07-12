@@ -1,4 +1,4 @@
-import { APIEmbed, APISelectMenuOption, FormattingPatterns } from "discord-api-types";
+import { APIEmbed, APIEmbedField, APISelectMenuOption, FormattingPatterns } from "discord-api-types";
 import { Unformat } from "./discord.ts";
 
 export const CustomIds = {
@@ -60,10 +60,10 @@ export function DefaultMemberInfo(username: string) {
     return `${username} - Character <0000> [Class]`;
 }
 
-export function DefaultCharacterEmbed(username: string, userId: string): APIEmbed {
+export function DefaultCharacterField(username: string, userId: string): APIEmbedField {
     return {
-        title: DefaultMemberInfo(username),
-        description: `<@${userId}>`,
+        name: DefaultMemberInfo(username),
+        value: `<@${userId}>`,
     };
 }
 
@@ -123,9 +123,9 @@ export interface CreateGroupInfo {
     CharacterInfo: CharacterInfo | undefined;
 }
 
-export function FindGroupMemberEmbedInList(embeds: APIEmbed[], userId: string): APIEmbed | undefined {
-    return embeds.find((embed) => {
-        const description = embed.description;
+export function FindGroupMemberFieldInList(groupEmbed: APIEmbed, userId: string): APIEmbedField | undefined {
+    return groupEmbed.fields?.find((field) => {
+        const description = field.value;
         if (!description) return;
         const idEndChar = description.indexOf(">");
         const idFormatted = description.substring(0, idEndChar + 1);
