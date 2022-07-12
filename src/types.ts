@@ -123,8 +123,11 @@ export interface CreateGroupInfo {
     CharacterInfo: CharacterInfo | undefined;
 }
 
+const excludedFields = [CustomIds.GroupLeader];
+
 export function FindGroupMemberFieldInList(groupEmbed: APIEmbed, userId: string): APIEmbedField | undefined {
     return groupEmbed.fields?.find((field) => {
+        if (excludedFields.find((f) => f === field.name)) return;
         const description = field.value;
         if (!description) return;
         const idEndChar = description.indexOf(">");
