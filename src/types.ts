@@ -143,6 +143,7 @@ export const Classes: string[] = [
     "Berserker",
     "Deadeye",
     "Deathblade",
+    "Glaivier",
     "Gunlancer",
     "Gunslinger",
     "Paladin",
