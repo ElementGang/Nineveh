@@ -72,7 +72,7 @@ export function FormatMemberInfo(userName: string, characterInfo: CharacterInfo 
     const formatted = `${userName} - ${characterInfo.Name} <${characterInfo.ItemLevel}> [${characterInfo.Class}]`;
     return formatted.match(MemberInfoRegExp) ? formatted : undefined;
 }
-const MemberInfoRegExp = /(\w+)\s\-\s(\w+)\s\<(\d+)\>\s\[(\w+)\]/;
+const MemberInfoRegExp = /(.+)\s\-\s(\w+)\s\<(\d+)\>\s\[(\w+)\]/;
 export function UnformatMemberInfo(formatted: string): [string, CharacterInfo | undefined] {
     const match = MemberInfoRegExp.exec(formatted);
     if (!match) return [formatted, undefined];
