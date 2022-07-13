@@ -99,6 +99,7 @@ export async function CreateGroup(info: CreateGroupInfo): Promise<GroupInfo | st
         if (roleId === undefined) {
             const groupRole = await CreateGuildRole(info.GuildId, {
                 name: groupName,
+                mentionable: true,
             });
             roleId = groupRole.id;
         }
