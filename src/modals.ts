@@ -18,6 +18,7 @@ import {
     GetChannelMessage,
     GetChannelMessages,
     GetEmbedFields,
+    ModifyChannel,
     ModifyGuildRole,
     Unformat,
 } from "./discord.ts";
@@ -326,6 +327,10 @@ export const EditGroupInfo = {
                 GetEmbedFields<GroupMainEmbedFields>(groupEmbed)[CustomIds.GroupRole],
                 FormattingPatterns.Role,
             )!;
+            const channelId = Unformat(
+                GetEmbedFields<GroupMainEmbedFields>(groupEmbed)[CustomIds.GroupChannel],
+                FormattingPatterns.Channel,
+            )!;
             const currentGroupName = groupEmbed.title!;
 
             // Check against group names, ignoring the existing embed with the current name
@@ -336,6 +341,8 @@ export const EditGroupInfo = {
             const masterListEmbed = masterListGroupMessage.embeds[0];
 
             await ModifyGuildRole(input.guild_id!, roleId, { name: newGroupName });
+
+            await ModifyChannel(channelId, { name: newGroupName });
 
             groupEmbed.title = newGroupName;
             groupEmbed.description = newDescription;

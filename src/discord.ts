@@ -9,6 +9,7 @@ import {
     ApplicationCommandType,
     InteractionResponseType,
     MessageFlags,
+    RESTPatchAPIChannelJSONBody,
     RESTPatchAPIChannelMessageJSONBody,
     RESTPatchAPIGuildRoleJSONBody,
     RESTPostAPIApplicationCommandsJSONBody,
@@ -174,6 +175,10 @@ export function CreateGuildChannel(guildId: string, message: RESTPostAPIGuildCha
 
 export function GetChannel(channelId: string): Promise<APIChannel> {
     return ApiGet(Routes.channel(channelId));
+}
+
+export function ModifyChannel(channelId: string, message: RESTPatchAPIChannelJSONBody): Promise<APIChannel> {
+    return ApiInvoke("PATCH", Routes.channel(channelId), message);
 }
 
 export function DeleteChannel(channelId: string): Promise<void> {
