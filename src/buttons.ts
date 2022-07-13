@@ -507,7 +507,7 @@ export const ApplyToGroup = {
                             {
                                 type: ComponentType.Button,
                                 style: ButtonStyle.Primary,
-                                label: "Edit",
+                                label: "Edit Character",
                                 custom_id: EditCharacter.id(),
                             },
                         ],
@@ -563,6 +563,14 @@ export const SubmitGroupApplication = {
             groupMainEmbedFields[CustomIds.GroupChannel],
             FormattingPatterns.Channel,
         )!;
+
+        const applicationField = applicationEmbed.fields![0];
+        const [_username, memberInfo] = UnformatMemberInfo(applicationField.name);
+        if (memberInfo?.ItemLevel === "0000" || memberInfo?.Name === "Character") {
+            return EphemeralMessage(
+                'Use "Edit Character" to enter your character name and item level. You can also add notes such as your schedule.',
+            );
+        }
 
         await CreateMessage(groupChannelId, {
             content: `${groupMainEmbedFields[CustomIds.GroupLeader]} group application received`,
