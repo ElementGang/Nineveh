@@ -634,7 +634,7 @@ export const AcceptApplication = {
 
         const guildId = input.guild_id!;
         const memberField = input.message.embeds[0].fields![0];
-        const memberId = GetUserIdFromMemberDescription(memberField.value!);
+        const memberId = GetUserIdFromMemberDescription(memberField.value!)!;
         const member = await GetGuildMember(guildId, memberId);
 
         if (member.roles.find((roleId) => roleId === groupRoleId)) {

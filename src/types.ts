@@ -83,11 +83,9 @@ export function FormatMemberDescription(userId: string, description: string | un
     return description === undefined || description === "" ? `<@${userId}>` : `<@${userId}> ${description}`;
 }
 
-export function GetUserIdFromMemberDescription(formatted: string): string {
+export function GetUserIdFromMemberDescription(formatted: string): string | undefined {
     const userIdEnd = formatted.indexOf(">");
-    const id = Unformat(formatted.substring(0, userIdEnd + 1), FormattingPatterns.User);
-    if (!id) throw new Error("Unformatting description to user id failed");
-    return id;
+    return Unformat(formatted.substring(0, userIdEnd + 1), FormattingPatterns.User);
 }
 
 export function UnformatMemberDescription(formatted: string): string {

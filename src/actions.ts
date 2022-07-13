@@ -401,7 +401,7 @@ export async function RemoveFromGroup(
     await RemoveGuildMemberRole(guildId, memberId, groupRoleId);
 
     groupEmbed.fields = groupEmbed.fields!.filter((field) => {
-        if (!field.value || !field.value.startsWith("<")) return true; // Skip fields that aren't member details (they always start with a mention so "<")
+        if (!field.value) return true;
         return GetUserIdFromMemberDescription(field.value) !== memberId;
     });
 
