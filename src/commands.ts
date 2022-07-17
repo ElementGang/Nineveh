@@ -167,7 +167,7 @@ export const Commands: Command[] = [
 
             const messages = await GetChannelMessages(input.channel_id);
             const masterListMessage = messages.find((msg) => {
-                msg.embeds?.[0].fields?.[0].name === CustomIds.GroupManagerRole;
+                return msg.embeds?.[0].fields?.[0].name === CustomIds.GroupManagerRole;
             });
             if (!masterListMessage) {
                 return EphemeralMessage("Couldn't find a group list in this channel");
