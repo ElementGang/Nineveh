@@ -229,7 +229,7 @@ export async function CreateGroup(info: CreateGroupInfo): Promise<GroupInfo | st
 
         LogChannelMessage(masterListMainEmbedFields, {
             content:
-                `New group '${groupName}' created by <@${info.LeaderUserId}> with role <@&${roleId}> and private channel <#${groupChannelId}>`,
+                `Group '${groupName}' created with leader <@${info.LeaderUserId}>, role <@&${roleId}> and channel <#${groupChannelId}>`,
             components: [
                 {
                     type: ComponentType.ActionRow,

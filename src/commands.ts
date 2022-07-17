@@ -7,11 +7,13 @@ import {
     ButtonStyle,
     ComponentType,
     InteractionResponseType,
+    MessageFlags,
     PermissionFlagsBits,
 } from "discord-api-types";
-import { CreateGuildApplicationCommand } from "./discord.ts";
+import { CreateGuildApplicationCommand, EphemeralMessage, GetChannelMessages, GetGuildMember } from "./discord.ts";
 import { AddGroup } from "./buttons.ts";
 import { CustomIds } from "./types.ts";
+import { CreateGroup } from "./actions.ts";
 
 export interface Command {
     name: string;
@@ -21,7 +23,23 @@ export interface Command {
     parameters: APIApplicationCommandOption[];
     interaction: (
         input: APIChatInputApplicationCommandInteraction,
-    ) => APIInteractionResponse;
+    ) => Promise<APIInteractionResponse>;
+}
+
+function getOption<
+    T extends APIApplicationCommandInteractionDataOption & { type: R },
+    R extends ApplicationCommandOptionType,
+>(
+    options: APIApplicationCommandInteractionDataOption[],
+    name: string,
+    type: R,
+): T | undefined {
+    const found = options.find((x) => x.name === name);
+    if (!found) return undefined;
+    if (found.type !== type) {
+        throw new Error(`Type of found option ${found.type} didn't match expected type ${type}`);
+    }
+    return found as T;
 }
 
 export const Commands: Command[] = [
@@ -51,27 +69,21 @@ export const Commands: Command[] = [
                 required: false,
             },
         ],
-        interaction(input) {
+        // deno-lint-ignore require-await
+        async interaction(input) {
             const serverCommands = Commands.filter((x) => x.scope === "server");
             for (const cmd of serverCommands) {
                 CreateGuildApplicationCommand(cmd, input.guild_id!);
             }
 
-            function getOption(name: string): APIApplicationCommandInteractionDataOption | undefined {
-                return input.data.options?.find((x) => x.name === name);
-            }
-
-            const selectedGroupManagerRole = getOption("group-manager")!;
-            const selectedGroupListChannel = getOption("groups-channel")!;
-            const selectedLogChannel = getOption("log-channel");
-
-            if (selectedGroupManagerRole?.type !== ApplicationCommandOptionType.Role) {
-                throw new Error("Groups manager option not found in response");
-            }
-
-            if (selectedGroupListChannel?.type !== ApplicationCommandOptionType.Channel) {
-                throw new Error("Groups channel option not found in response");
-            }
+            const options = input.data.options!;
+            const selectedGroupManagerRole = getOption(options, "group-manager", ApplicationCommandOptionType.Role)!;
+            const selectedGroupListChannel = getOption(
+                options,
+                "groups-channel",
+                ApplicationCommandOptionType.Channel,
+            )!;
+            const selectedLogChannel = getOption(options, "log-channel", ApplicationCommandOptionType.Channel);
 
             const result: APIInteractionResponse = {
                 type: InteractionResponseType.ChannelMessageWithSource,
@@ -117,6 +129,74 @@ export const Commands: Command[] = [
                 },
             };
             return result;
+        },
+    },
+    {
+        name: "add-group",
+        description: "Add a role/channel to a new group in the first group list of a channel.",
+        permissions: PermissionFlagsBits.ManageChannels | PermissionFlagsBits.ManageRoles,
+        scope: "global",
+        parameters: [
+            {
+                type: ApplicationCommandOptionType.String,
+                name: "name",
+                description: "Name of the group. Wont't overwrite channel/role name.",
+                required: true,
+            },
+            {
+                type: ApplicationCommandOptionType.User,
+                name: "leader",
+                description: "Leader of the group.",
+                required: true,
+            },
+            {
+                type: ApplicationCommandOptionType.Channel,
+                name: "channel",
+                description: "Existing channel of the group.",
+                required: true,
+            },
+            {
+                type: ApplicationCommandOptionType.Role,
+                name: "role",
+                description: "Role of the group.",
+                required: true,
+            },
+        ],
+        async interaction(input): Promise<APIInteractionResponse> {
+            const options = input.data.options!;
+
+            const messages = await GetChannelMessages(input.channel_id);
+            const masterListMessage = messages.find((msg) => {
+                msg.embeds?.[0].fields?.[0].name === CustomIds.GroupManagerRole;
+            });
+            if (!masterListMessage) {
+                return EphemeralMessage("Couldn't find a group list in this channel");
+            }
+
+            const leaderId = getOption(options, "leader", ApplicationCommandOptionType.User)!.value;
+            const leaderMember = await GetGuildMember(input.guild_id!, leaderId);
+            const groupName = getOption(options, "name", ApplicationCommandOptionType.String)!.value;
+
+            await CreateGroup({
+                GroupName: groupName,
+                GroupDescription: "",
+                GuildId: input.guild_id!,
+                MasterListChannelId: input.channel_id,
+                MasterListMessageId: masterListMessage.id,
+                CharacterInfo: undefined,
+                LeaderUserId: leaderId,
+                LeaderUserName: leaderMember.nick ?? leaderMember.user!.username,
+                ExistingChannelId: getOption(options, "channel", ApplicationCommandOptionType.Channel)!.value,
+                ExistingRoleId: getOption(options, "role", ApplicationCommandOptionType.Role)!.value,
+            });
+
+            return {
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data: {
+                    flags: MessageFlags.Ephemeral,
+                    content: `Migrated group ${groupName}`,
+                },
+            };
         },
     },
 ];
