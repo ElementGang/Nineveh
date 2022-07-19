@@ -136,11 +136,13 @@ export function FindGroupMemberFieldInList(groupEmbed: APIEmbed, userId: string)
 }
 
 export const Classes: string[] = [
+    "Arcanist",
     "Artillerist",
     "Bard",
     "Berserker",
     "Deadeye",
     "Deathblade",
+    "Destroyer",
     "Glaivier",
     "Gunlancer",
     "Gunslinger",
