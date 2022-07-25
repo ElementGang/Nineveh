@@ -66,7 +66,7 @@ function UpdateEmbedFromModal(embed: APIEmbed, data: APIModalSubmission) {
 
 export const EmbedUpdate = {
     id: (embedNumber: number) => {
-        return `EmbedUpdate_${embedNumber}`;
+        return `EU_${embedNumber}`;
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIModalSubmitInteraction): Promise<APIInteractionResponse> => {
@@ -104,7 +104,7 @@ export const EditCharacterInfo = {
         Description: "Description",
     },
     id: (mode: "UpdateMessage" | "EditOtherMessage", channelId?: string, messageId?: string) => {
-        return `EditCharacterInfo_${mode}_${channelId}_${messageId}`;
+        return `ECI_${mode}_${channelId}_${messageId}`;
     },
     components: (characterInfo: CharacterInfo | undefined): APIActionRowComponent<APIModalActionRowComponent>[] => {
         const description = UnformatMemberDescription(characterInfo?.Description ?? "");
@@ -243,7 +243,7 @@ export const EditGroupInfo = {
         groupsChannelId: string | undefined,
         groupMessageId: string | undefined,
     ) => {
-        return `EditGroupInfo_${mode}_${masterListChannelId}_${masterListGroupMessageId}_${groupsChannelId}_${groupMessageId}`;
+        return `EGI_${mode}_${masterListChannelId}_${masterListGroupMessageId}_${groupsChannelId}_${groupMessageId}`;
     },
     components: (
         groupName: string,

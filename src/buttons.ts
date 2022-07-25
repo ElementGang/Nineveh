@@ -53,7 +53,7 @@ export interface Button {
 
 export const AddGroup = {
     id: () => {
-        return "AddGroup";
+        return "AG";
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const isAdminUser = (BigInt(input.member!.permissions) & PermissionFlagsBits.Administrator) ===
@@ -193,7 +193,7 @@ export const AddGroup = {
 
 export const EditMemberDetails = {
     id: () => {
-        return `EditMemberDetails`;
+        return `EMD`;
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
@@ -243,7 +243,7 @@ export const EditMemberDetails = {
 
 export const EditCharacter = {
     id: (groupsChannelId?: string, groupMessageId?: string) => {
-        return `EditCharacter_${groupsChannelId}_${groupMessageId}`;
+        return `EC_${groupsChannelId}_${groupMessageId}`;
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const [_, groupsChannelId, groupMessageId] = input.data.custom_id.split("_");
@@ -292,7 +292,7 @@ export const EditCharacter = {
 
 export const EditGroup = {
     id: (masterListChannelId: string, masterListMessageId: string, masterListGroupMessageId: string) => {
-        return `EditGroup_${masterListChannelId}_${masterListMessageId}_${masterListGroupMessageId}`;
+        return `EG_${masterListChannelId}_${masterListMessageId}_${masterListGroupMessageId}`;
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
@@ -371,7 +371,7 @@ export const EditGroupDetails = {
         groupsChannelId: string | undefined,
         groupMessageId: string | undefined,
     ) => {
-        return `EditGroupDetails_${mode}_${masterListChannelId}_${masterListGroupMessageId}_${groupsChannelId}_${groupMessageId}`;
+        return `EGD_${mode}_${masterListChannelId}_${masterListGroupMessageId}_${groupsChannelId}_${groupMessageId}`;
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const [_, mode, masterListChannelId, masterListGroupMessageId, groupsChannelId, groupMessageId] = input.data
@@ -412,7 +412,7 @@ export const EditGroupDetails = {
 
 export const SubmitNewGroup = {
     id: (masterListMessageId: string) => {
-        return `SubmitNewGroup_${masterListMessageId}`;
+        return `SNG_${masterListMessageId}`;
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const [_, masterListMessageId] = input.data.custom_id.split("_");
@@ -473,7 +473,7 @@ export const SubmitNewGroup = {
 
 export const ApplyToGroup = {
     id: (masterListChannelId: string, masterListMessageId: string) => {
-        return `ApplyToGroup_${masterListChannelId}_${masterListMessageId}`;
+        return `ATG_${masterListChannelId}_${masterListMessageId}`;
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
@@ -554,7 +554,7 @@ export const ApplyToGroup = {
 
 export const SubmitGroupApplication = {
     id: (masterListChannelId: string, masterListMessageId: string, groupMessageId: string) => {
-        return `SubmitGroupApplication_${masterListChannelId}_${masterListMessageId}_${groupMessageId}`;
+        return `SGA_${masterListChannelId}_${masterListMessageId}_${groupMessageId}`;
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const [_, masterListChannelId, masterListMessageId, groupMessageId] = input.data.custom_id.split("_");
@@ -615,7 +615,7 @@ export const SubmitGroupApplication = {
 
 export const AcceptApplication = {
     id: (masterListChannelId: string, masterListMessageId: string, groupsChannelId: string, groupMessageId: string) => {
-        return `AcceptApplication_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
+        return `AA_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const [_, masterListChannelId, masterListMessageId, groupsChannelId, groupMessageId] = input.data.custom_id
@@ -668,7 +668,7 @@ export const AcceptApplication = {
 
 export const LeaveGroup = {
     id: (masterListChannelId: string, masterListMessageId: string) => {
-        return `LeaveGroup_${masterListChannelId}_${masterListMessageId}`;
+        return `LG_${masterListChannelId}_${masterListMessageId}`;
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
@@ -718,7 +718,7 @@ export const LeaveGroup = {
 
 export const ConfirmLeaveGroup = {
     id: (masterListChannelId: string, masterListMessageId: string, groupMessageId: string) => {
-        return `ConfirmLeaveGroup_${masterListChannelId}_${masterListMessageId}_${groupMessageId}`;
+        return `CLG_${masterListChannelId}_${masterListMessageId}_${groupMessageId}`;
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const [_, masterListChannelId, masterListMessageId, groupMessageId] = input.data.custom_id.split("_");
@@ -744,7 +744,7 @@ export const ConfirmLeaveGroup = {
 
 export const ChangeGroupLeader = {
     id: (masterListChannelId: string, masterListMessageId: string, groupsChannelId: string, groupMessageId: string) => {
-        return `ChangeGroupLeader_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
+        return `CGL_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
     },
     component: (
         masterListChannelId: string,
@@ -809,7 +809,7 @@ export const ChangeGroupLeader = {
 
 export const SubmitChangeGroupLeader = {
     id: (masterListChannelId: string, masterListMessageId: string, groupsChannelId: string, groupMessageId: string) => {
-        return `SubmitChangeGroupLeader_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
+        return `SCGL_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
     },
     component: (
         masterListChannelId: string,
@@ -860,7 +860,7 @@ export const SubmitChangeGroupLeader = {
 
 export const KickGroupMember = {
     id: (masterListChannelId: string, masterListMessageId: string) => {
-        return `KickGroupMember_${masterListChannelId}_${masterListMessageId}`;
+        return `KGM_${masterListChannelId}_${masterListMessageId}`;
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
@@ -875,7 +875,7 @@ export const DeleteGroup = {
         masterListGroupMessageId: string,
         groupMessageId: string,
     ) => {
-        return `DeleteGroup_${masterListChannelId}_${masterListMessageId}_${masterListGroupMessageId}_${groupMessageId}`;
+        return `DG_${masterListChannelId}_${masterListMessageId}_${masterListGroupMessageId}_${groupMessageId}`;
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
@@ -934,7 +934,7 @@ export const ConfirmDeleteGroup = {
         masterListGroupMessageId: string,
         groupMessageId: string,
     ) => {
-        return `ConfirmDeleteGroup_${mode}_${masterListChannelId}_${masterListMessageId}_${masterListGroupMessageId}_${groupMessageId}`;
+        return `CDG_${ConfirmDeleteGroup}_${mode}_${masterListChannelId}_${masterListMessageId}_${masterListGroupMessageId}_${groupMessageId}`;
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         const [_, modeStr, masterListChannelId, masterListMessageId, masterListGroupMessageId, groupMessageId] = input
@@ -965,20 +965,20 @@ export const ConfirmDeleteGroup = {
 };
 
 export const Buttons: Record<string, Button> = {
-    AddGroup,
-    SubmitNewGroup,
-    ApplyToGroup,
-    SubmitGroupApplication,
     AcceptApplication,
-    LeaveGroup,
+    AddGroup,
+    ApplyToGroup,
+    ChangeGroupLeader,
+    ConfirmDeleteGroup,
     ConfirmLeaveGroup,
-    EditMemberDetails,
+    DeleteGroup,
     EditCharacter,
     EditGroup,
     EditGroupDetails,
+    EditMemberDetails,
     KickGroupMember,
-    DeleteGroup,
-    ConfirmDeleteGroup,
-    ChangeGroupLeader,
+    LeaveGroup,
     SubmitChangeGroupLeader,
+    SubmitGroupApplication,
+    SubmitNewGroup,
 };

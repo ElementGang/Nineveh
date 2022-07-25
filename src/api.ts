@@ -79,7 +79,9 @@ export async function HandleInteraction(
         typeString: string,
         bodyFunc: (input: T) => unknown,
     ) {
-        const result = Object.entries(entries).find((entry) => customId.split("_")[0] === entry[0]);
+        const result = Object.entries(entries).find((entry) =>
+            customId.split("_")[0] === entry[0].replace("/[^A-Z]+/g", "") // Matching start of id with capital letters in entry
+        );
         const component = result?.[1] ?? undefined;
         if (component) {
             try {

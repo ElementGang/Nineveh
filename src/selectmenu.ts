@@ -51,7 +51,7 @@ function UpdateSelectMenu(message: APIMessage, data: APIMessageSelectMenuInterac
 
 export const SimpleMenu = {
     id: (name: string) => {
-        return `SimpleMenu_${name}`;
+        return `SM_${name}`;
     },
     component: (
         menuName: string,
@@ -88,7 +88,7 @@ export const SimpleMenu = {
 // This will modify the message that the select menu is attached to
 export const DynamicEmbedField = {
     id: (name: string) => {
-        return `DynamicEmbedField_${name}`;
+        return `DEF_${name}`;
     },
     // deno-lint-ignore require-await
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
@@ -112,7 +112,7 @@ export const DynamicEmbedField = {
 
 export const EditCharacterClass = {
     id: (groupsChannelId?: string, groupMessageId?: string) => {
-        return `EditCharacterClass_${groupsChannelId}_${groupMessageId}`;
+        return `ECC_${groupsChannelId}_${groupMessageId}`;
     },
     component: (multiselect: boolean): APISelectMenuComponent => {
         return {

@@ -10,7 +10,13 @@ import {
     MessageFlags,
     PermissionFlagsBits,
 } from "discord-api-types";
-import { CreateGuildApplicationCommand, EphemeralMessage, GetChannelMessages, GetGuildMember } from "./discord.ts";
+import {
+    CreateGuildApplicationCommand,
+    EditMessage,
+    EphemeralMessage,
+    GetChannelMessages,
+    GetGuildMember,
+} from "./discord.ts";
 import { AddGroup } from "./buttons.ts";
 import { CustomIds } from "./types.ts";
 import { CreateGroup } from "./actions.ts";
@@ -195,6 +201,53 @@ export const Commands: Command[] = [
                 data: {
                     flags: MessageFlags.Ephemeral,
                     content: `Migrated group ${groupName}`,
+                },
+            };
+        },
+    },
+    {
+        name: "update",
+        description: "Update data model. Do not use unless you know what you're doing - docs may come in future.",
+        permissions: PermissionFlagsBits.ManageChannels | PermissionFlagsBits.ManageRoles,
+        scope: "global",
+        parameters: [
+            {
+                type: ApplicationCommandOptionType.String,
+                name: "operation",
+                description: "What operation to perform",
+                required: true,
+            },
+        ],
+        async interaction(input): Promise<APIInteractionResponse> {
+            const options = input.data.options!;
+
+            const operation = getOption(options, "operation", ApplicationCommandOptionType.String)!.value;
+
+            switch (operation) {
+                case "reducecomponentids":
+                    {
+                        for (const msg of await GetChannelMessages(input.channel_id)) {
+                            if (!msg.components) continue;
+                            msg.components.forEach((row) =>
+                                row.components.filter((c) => "custom_id" in c).forEach((c) => {
+                                    const component = c as { custom_id: string };
+                                    const [before, ...after] = component.custom_id.split("_");
+                                    component.custom_id = `${before.replace("/[^A-Z]/g", "")}${after.join("_")}`;
+                                })
+                            );
+                            await EditMessage(msg.channel_id, msg.id, { components: msg.components });
+                        }
+                    }
+                    break;
+                default:
+                    return EphemeralMessage(`Operation '${operation}' not found`);
+            }
+
+            return {
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data: {
+                    flags: MessageFlags.Ephemeral,
+                    content: `Completed`,
                 },
             };
         },
