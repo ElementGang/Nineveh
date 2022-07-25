@@ -386,6 +386,33 @@ export async function AddToGroup(
     });
 }
 
+export async function ChangeGroupLeader(
+    userId: string,
+    masterListMessageParam: APIMessage | [masterListChannelId: string, masterListMessageId: string],
+    groupMessageParam: APIMessage | [groupsChannelId: string, groupMessageId: string],
+    newLeaderId: string,
+) {
+    const masterListMessage = masterListMessageParam instanceof Array
+        ? await GetChannelMessage(masterListMessageParam[0], masterListMessageParam[1])
+        : masterListMessageParam;
+    const groupMessage = groupMessageParam instanceof Array
+        ? await GetChannelMessage(groupMessageParam[0], groupMessageParam[1])
+        : groupMessageParam;
+
+    async function UpdateLeaderInMessage(message: APIMessage) {
+        const field = message.embeds?.[0].fields?.find((f) => f.name === CustomIds.GroupLeader);
+        if (!field) return;
+        if (Unformat(field.value, FormattingPatterns.User) !== userId) {
+            throw new Error("You are not the leader of the group");
+        }
+        field.value = `<@${newLeaderId}>`;
+        await EditMessage(message.channel_id, message.id, { embeds: message.embeds });
+    }
+
+    await UpdateLeaderInMessage(masterListMessage);
+    await UpdateLeaderInMessage(groupMessage);
+}
+
 export async function RemoveFromGroup(
     guildId: string,
     masterListChannelId: string,

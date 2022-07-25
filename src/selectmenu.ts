@@ -9,7 +9,14 @@ import {
     InteractionResponseType,
 } from "discord-api-types";
 import { EditMessage, EphemeralMessage, GetChannelMessage } from "./discord.ts";
-import { DefaultCharacterField, FindGroupMemberFieldInList, FormatMemberInfo, UnformatMemberInfo } from "./types.ts";
+import {
+    AtLeastExcept,
+    ClassSelectMenuOptions,
+    DefaultCharacterField,
+    FindGroupMemberFieldInList,
+    FormatMemberInfo,
+    UnformatMemberInfo,
+} from "./types.ts";
 
 export interface SelectMenu {
     interaction: (
@@ -42,6 +49,41 @@ function UpdateSelectMenu(message: APIMessage, data: APIMessageSelectMenuInterac
     }
 }
 
+export const SimpleMenu = {
+    id: (name: string) => {
+        return `SimpleMenu_${name}`;
+    },
+    component: (
+        menuName: string,
+        component: AtLeastExcept<APISelectMenuComponent, "options", "type" | "custom_id">,
+    ): APISelectMenuComponent => {
+        return {
+            type: ComponentType.SelectMenu,
+            custom_id: SimpleMenu.id(menuName),
+            placeholder: component.placeholder,
+            max_values: component.max_values,
+            min_values: component.min_values,
+            options: component.options,
+            disabled: component.disabled,
+        };
+    },
+    // deno-lint-ignore require-await
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        if (input.data.component_type !== ComponentType.SelectMenu) { // TODO: Better way to not need this
+            return EphemeralMessage("Component type was not select menu");
+        }
+
+        UpdateSelectMenu(input.message, input.data);
+
+        return {
+            type: InteractionResponseType.UpdateMessage,
+            data: {
+                components: input.message.components,
+            },
+        };
+    },
+};
+
 // Behaviour of dynamic embed field select menu is to set all embed fields with names matching the select menu custom id to the same value
 // This will modify the message that the select menu is attached to
 export const DynamicEmbedField = {
@@ -71,6 +113,16 @@ export const DynamicEmbedField = {
 export const EditCharacterClass = {
     id: (groupsChannelId?: string, groupMessageId?: string) => {
         return `EditCharacterClass_${groupsChannelId}_${groupMessageId}`;
+    },
+    component: (multiselect: boolean): APISelectMenuComponent => {
+        return {
+            type: ComponentType.SelectMenu,
+            custom_id: EditCharacterClass.id(),
+            placeholder: "Select class",
+            max_values: multiselect ? ClassSelectMenuOptions.length : 1,
+            min_values: 1,
+            options: ClassSelectMenuOptions,
+        };
     },
     interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
         if (input.data.component_type !== ComponentType.SelectMenu) { // TODO: Better way to not need this
@@ -122,4 +174,4 @@ export const EditCharacterClass = {
     },
 };
 
-export const SelectMenus: Record<string, SelectMenu> = { DynamicEmbedField, EditCharacterClass };
+export const SelectMenus: Record<string, SelectMenu> = { SimpleMenu, DynamicEmbedField, EditCharacterClass };

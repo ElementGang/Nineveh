@@ -1,8 +1,10 @@
 import {
+    APIButtonComponent,
     APIEmbedField,
     APIInteractionResponse,
     APIMessage,
     APIMessageComponentInteraction,
+    APISelectMenuOption,
     ButtonStyle,
     ComponentType,
     FormattingPatterns,
@@ -10,7 +12,13 @@ import {
     MessageFlags,
     PermissionFlagsBits,
 } from "discord-api-types";
-import { AddToGroup, CreateGroup, DeleteGroup as ActionDeleteGroup, RemoveFromGroup } from "./actions.ts";
+import {
+    AddToGroup,
+    ChangeGroupLeader as ActionChangeGroupLeader,
+    CreateGroup,
+    DeleteGroup as ActionDeleteGroup,
+    RemoveFromGroup,
+} from "./actions.ts";
 import {
     CreateMessage,
     CreateMessageUrl,
@@ -21,7 +29,7 @@ import {
     Unformat,
 } from "./discord.ts";
 import { EditCharacterInfo, EditGroupInfo } from "./modals.ts";
-import { EditCharacterClass } from "./selectmenu.ts";
+import { EditCharacterClass, SimpleMenu } from "./selectmenu.ts";
 import {
     CharacterInfo,
     ClassSelectMenuOptions,
@@ -29,6 +37,7 @@ import {
     DefaultCharacterField,
     DefaultCharacterInfo,
     FindGroupMemberFieldInList,
+    GetGroupMemberFields,
     GetUserIdFromMemberDescription,
     GroupMainEmbedFields,
     MasterListMainEmbedFields,
@@ -116,16 +125,7 @@ export const AddGroup = {
                     },
                     {
                         type: ComponentType.ActionRow,
-                        components: [
-                            {
-                                type: ComponentType.SelectMenu,
-                                custom_id: EditCharacterClass.id(),
-                                placeholder: "Select class",
-                                max_values: 1,
-                                min_values: 1,
-                                options: ClassSelectMenuOptions,
-                            },
-                        ],
+                        components: [EditCharacterClass.component(false)],
                     },
                     // {
                     //     type: ComponentType.ActionRow,
@@ -332,6 +332,12 @@ export const EditGroup = {
                                 ),
                                 label: "Edit Group Details",
                             },
+                            ChangeGroupLeader.component(
+                                masterListChannelId,
+                                masterListGroupMessageId,
+                                input.channel_id,
+                                input.message.id,
+                            ),
                             {
                                 type: ComponentType.Button,
                                 style: ButtonStyle.Danger,
@@ -736,6 +742,116 @@ export const ConfirmLeaveGroup = {
     },
 };
 
+export const ChangeGroupLeader = {
+    id: (masterListChannelId: string, masterListMessageId: string, groupsChannelId: string, groupMessageId: string) => {
+        return `ChangeGroupLeader_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
+    },
+    component: (
+        masterListChannelId: string,
+        masterListMessageId: string,
+        groupsChannelId: string,
+        groupMessageId: string,
+    ): APIButtonComponent => {
+        return {
+            type: ComponentType.Button,
+            custom_id: ChangeGroupLeader.id(masterListChannelId, masterListMessageId, groupsChannelId, groupMessageId),
+            style: ButtonStyle.Primary,
+            label: "Change Group Leader",
+        };
+    },
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const [_, masterListChannelId, masterListMessageId, groupsChannelId, groupMessageId] = input.data.custom_id
+            .split("_");
+
+        let members = await GetGroupMemberFields([groupsChannelId, groupMessageId]);
+        if (!members) {
+            return EphemeralMessage("Couldn't read group members from group message");
+        }
+
+        // Remove current leader from options
+        members = members.filter((m) => GetUserIdFromMemberDescription(m.value) !== input.member?.user.id);
+
+        return {
+            type: InteractionResponseType.ChannelMessageWithSource,
+            data: {
+                flags: MessageFlags.Ephemeral,
+                components: [{
+                    type: ComponentType.ActionRow,
+                    components: [
+                        SimpleMenu.component("NewLeader", {
+                            options: members.map((f): APISelectMenuOption => {
+                                const userId = GetUserIdFromMemberDescription(f.value)!;
+                                return {
+                                    label: `<@${userId}>`,
+                                    value: userId,
+                                };
+                            }),
+                            placeholder: "Pick a new leader",
+                        }),
+                        SubmitChangeGroupLeader.component(
+                            masterListChannelId,
+                            masterListMessageId,
+                            groupsChannelId,
+                            groupMessageId,
+                        ),
+                    ],
+                }],
+            },
+        };
+    },
+};
+
+export const SubmitChangeGroupLeader = {
+    id: (masterListChannelId: string, masterListMessageId: string, groupsChannelId: string, groupMessageId: string) => {
+        return `SubmitChangeGroupLeader_${masterListChannelId}_${masterListMessageId}_${groupsChannelId}_${groupMessageId}`;
+    },
+    component: (
+        masterListChannelId: string,
+        masterListMessageId: string,
+        groupsChannelId: string,
+        groupMessageId: string,
+    ): APIButtonComponent => {
+        return {
+            type: ComponentType.Button,
+            custom_id: SubmitChangeGroupLeader.id(
+                masterListChannelId,
+                masterListMessageId,
+                groupsChannelId,
+                groupMessageId,
+            ),
+            style: ButtonStyle.Primary,
+            label: "Apply",
+        };
+    },
+    interaction: async (input: APIMessageComponentInteraction): Promise<APIInteractionResponse> => {
+        const [_, masterListChannelId, masterListMessageId, groupsChannelId, groupMessageId] = input.data.custom_id
+            .split("_");
+
+        const menu = input.message.components?.[0].components[0];
+        if (menu?.type !== ComponentType.SelectMenu || menu.custom_id !== SimpleMenu.id("NewLeader")) {
+            return EphemeralMessage("Couldn't get new leader select menu from message");
+        }
+        const selectedLeaderOptions = menu.options.filter((o) => o.default === true);
+        if (selectedLeaderOptions.length !== 1) {
+            return EphemeralMessage("More than 1 leader was selected, this should never happen - report it as a bug");
+        }
+        const newLeaderId = selectedLeaderOptions[0].value;
+
+        await ActionChangeGroupLeader(input.member!.user.id, [masterListChannelId, masterListMessageId], [
+            groupsChannelId,
+            groupMessageId,
+        ], newLeaderId);
+
+        return {
+            type: InteractionResponseType.UpdateMessage,
+            data: {
+                components: [],
+                content: `Successfully changed leader to <@${newLeaderId}>`,
+            },
+        };
+    },
+};
+
 export const KickGroupMember = {
     id: (masterListChannelId: string, masterListMessageId: string) => {
         return `KickGroupMember_${masterListChannelId}_${masterListMessageId}`;
@@ -857,4 +973,6 @@ export const Buttons: Record<string, Button> = {
     KickGroupMember,
     DeleteGroup,
     ConfirmDeleteGroup,
+    ChangeGroupLeader,
+    SubmitChangeGroupLeader,
 };

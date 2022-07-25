@@ -1,5 +1,7 @@
-import { APIEmbed, APIEmbedField, APISelectMenuOption, FormattingPatterns } from "discord-api-types";
-import { Unformat } from "./discord.ts";
+import { APIEmbed, APIEmbedField, APIMessage, APISelectMenuOption, FormattingPatterns } from "discord-api-types";
+import { GetChannelMessage, Unformat } from "./discord.ts";
+
+export type AtLeastExcept<T, K extends keyof T, E extends keyof T> = Partial<Omit<T, E>> & Pick<T, K>;
 
 export const CustomIds = {
     // Group Embed
@@ -92,6 +94,21 @@ export function UnformatMemberDescription(formatted: string): string {
     const descriptionStart = formatted.indexOf(">");
     if (descriptionStart === -1) return formatted;
     return formatted.substring(descriptionStart + 1).trimStart();
+}
+
+export async function GetGroupMemberFields(
+    method: APIMessage | [GroupsChannelId: string, GroupMessageId: string],
+): Promise<APIEmbedField[] | undefined> {
+    let message: APIMessage;
+    if (method instanceof Array) {
+        const [groupsChannelId, groupMessageId] = method;
+        message = await GetChannelMessage(groupsChannelId, groupMessageId);
+    } else {
+        message = method;
+    }
+    return message.embeds?.[0].fields?.filter((f) =>
+        f.name !== CustomIds.GroupLeader && GetUserIdFromMemberDescription(f.value) !== undefined
+    );
 }
 
 export interface GroupInfo {
