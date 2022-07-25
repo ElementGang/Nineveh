@@ -770,6 +770,9 @@ export const ChangeGroupLeader = {
 
         // Remove current leader from options
         members = members.filter((m) => GetUserIdFromMemberDescription(m.value) !== input.member?.user.id);
+        if (members.length < 1) {
+            return EphemeralMessage("There are no other group members");
+        }
 
         return {
             type: InteractionResponseType.ChannelMessageWithSource,
@@ -780,21 +783,24 @@ export const ChangeGroupLeader = {
                     components: [
                         SimpleMenu.component("NewLeader", {
                             options: members.map((f): APISelectMenuOption => {
+                                const [username, _characterInfo] = UnformatMemberInfo(f.name);
                                 const userId = GetUserIdFromMemberDescription(f.value)!;
                                 return {
-                                    label: `<@${userId}>`,
+                                    label: username,
                                     value: userId,
                                 };
                             }),
                             placeholder: "Pick a new leader",
                         }),
-                        SubmitChangeGroupLeader.component(
-                            masterListChannelId,
-                            masterListMessageId,
-                            groupsChannelId,
-                            groupMessageId,
-                        ),
                     ],
+                }, {
+                    type: ComponentType.ActionRow,
+                    components: [SubmitChangeGroupLeader.component(
+                        masterListChannelId,
+                        masterListMessageId,
+                        groupsChannelId,
+                        groupMessageId,
+                    )],
                 }],
             },
         };
